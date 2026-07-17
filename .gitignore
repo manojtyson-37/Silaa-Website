@@ -14,3 +14,4 @@ next-env.d.ts
 
 # customer order records — never commit
 orders/
+.env*

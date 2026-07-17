@@ -4,9 +4,8 @@ import Reveal from "@/components/Reveal";
 
 export const metadata = { title: "Our Story — SILA Collective" };
 
-const FOUNDER_IMG =
-  "https://silacollective.in/cdn/shop/files/WhatsApp_Image_2026-06-24_at_22.33.30_ed424b81-adf3-4360-95ff-ee1afe123cc1.jpg";
-const STORY_IMG = "https://silacollective.in/cdn/shop/files/DSC06913.jpg";
+const FOUNDER_IMG = "/brand/founder.jpg";
+const STORY_IMG = "/brand/story.jpg";
 
 export default function AboutPage() {
   return (

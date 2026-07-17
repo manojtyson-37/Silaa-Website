@@ -11,12 +11,14 @@ export default function Home() {
   const kids = byCategory("kids");
   const combos = byCategory("combo");
   const heroProducts = [launches[3], launches[2], launches[1]].filter(Boolean);
-  const heroCards = heroProducts.map((p) => ({
-    src: p.images[0]?.src ?? "",
-    href: `/product/${p.handle}`,
-    title: p.title,
-    price: inr(price(p)),
-  }));
+  const heroCards = heroProducts
+    .map((p) => ({
+      src: p.images[0]?.src ?? "",
+      href: `/product/${p.handle}`,
+      title: p.title,
+      price: inr(price(p)),
+    }))
+    .filter((c) => c.src);
   const comboFeature = combos[0];
   const bestOfWomen = women.slice(0, 8);
 

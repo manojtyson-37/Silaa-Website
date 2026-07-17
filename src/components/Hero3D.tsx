@@ -47,15 +47,14 @@ export default function Hero3D({ cards }: { cards: HeroCard[] }) {
       scene.style.setProperty("--py", "0");
     };
 
-    const onPrefChange = () => onLeave();
     scene.addEventListener("pointermove", onMove);
     scene.addEventListener("pointerleave", onLeave);
-    rmq.addEventListener("change", onPrefChange);
+    rmq.addEventListener("change", onLeave);
     return () => {
       cancelAnimationFrame(frame.current);
       scene.removeEventListener("pointermove", onMove);
       scene.removeEventListener("pointerleave", onLeave);
-      rmq.removeEventListener("change", onPrefChange);
+      rmq.removeEventListener("change", onLeave);
     };
   }, []);
 
@@ -97,7 +96,7 @@ export default function Hero3D({ cards }: { cards: HeroCard[] }) {
         <div className="mt-8 sm:-mt-[6vw] grid grid-cols-12 gap-4 items-end [transform-style:preserve-3d]">
           {cards.slice(0, 3).map((card, i) => (
             <div
-              key={card.href + i}
+              key={card.href}
               className={`hero-layer ${positions[i]} ${depths[i]} relative z-20 animate-fadeIn`}
               style={{ animationDelay: `${i * 180}ms`, ["--depth" as string]: i === 2 ? 1.6 : i === 0 ? 1 : 0.55 }}
             >
@@ -124,21 +123,21 @@ export default function Hero3D({ cards }: { cards: HeroCard[] }) {
           {/* floating accents at extreme depth */}
           <span
             aria-hidden
-            className="hero-layer hero-float hidden sm:grid absolute z-30 -top-8 right-[14%] sm:[transform:translateZ(180px)] w-16 h-16 place-items-center rounded-full border border-gold/50 bg-ivory/70 backdrop-blur text-gold text-xl"
+            className="hero-layer hero-float hidden sm:grid absolute z-30 pointer-events-none -top-8 right-[14%] sm:[transform:translateZ(180px)] w-16 h-16 place-items-center rounded-full border border-gold/50 bg-ivory/70 backdrop-blur text-gold text-xl"
             style={{ ["--depth" as string]: 2.2 }}
           >
             ✦
           </span>
           <span
             aria-hidden
-            className="hero-layer hero-float hidden sm:block absolute z-30 bottom-[18%] left-[2%] sm:[transform:translateZ(120px)] bg-ink text-ivory text-[11px] uppercase tracking-[0.25em] px-4 py-2.5"
+            className="hero-layer hero-float hidden sm:block absolute z-30 pointer-events-none bottom-[18%] left-[2%] sm:[transform:translateZ(120px)] bg-ink text-ivory text-[11px] uppercase tracking-[0.25em] px-4 py-2.5"
             style={{ ["--depth" as string]: 1.4, animationDelay: "1.2s" }}
           >
             COD available
           </span>
           <span
             aria-hidden
-            className="hero-layer hero-float hidden lg:block absolute z-30 top-[30%] right-[9%] sm:[transform:translateZ(200px)] bg-gold text-ivory text-[11px] uppercase tracking-[0.25em] px-4 py-2.5"
+            className="hero-layer hero-float hidden lg:block absolute z-30 pointer-events-none top-[30%] right-[9%] sm:[transform:translateZ(200px)] bg-gold text-ivory text-[11px] uppercase tracking-[0.25em] px-4 py-2.5"
             style={{ ["--depth" as string]: 2.6, animationDelay: "0.6s" }}
           >
             New drops weekly
