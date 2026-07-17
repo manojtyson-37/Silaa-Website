@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Reveal from "@/components/Reveal";
 import ProductCard from "@/components/ProductCard";
+import Hero3D from "@/components/Hero3D";
 import { allProducts, byCategory, newLaunches, inr, price } from "@/lib/catalog";
 
 export default function Home() {
@@ -9,86 +10,20 @@ export default function Home() {
   const women = byCategory("women");
   const kids = byCategory("kids");
   const combos = byCategory("combo");
-  const heroA = launches[3]?.images[0]?.src ?? women[0]?.images[0]?.src;
-  const heroB = launches[2]?.images[0]?.src ?? kids[0]?.images[0]?.src;
-  const heroC = launches[1]?.images[0]?.src;
+  const heroProducts = [launches[3], launches[2], launches[1]].filter(Boolean);
+  const heroCards = heroProducts.map((p) => ({
+    src: p.images[0]?.src ?? "",
+    href: `/product/${p.handle}`,
+    title: p.title,
+    price: inr(price(p)),
+  }));
   const comboFeature = combos[0];
   const bestOfWomen = women.slice(0, 8);
 
   return (
     <div className="overflow-x-clip">
-      {/* ── HERO ─────────────────────────────────────────── */}
-      <section className="relative mx-auto max-w-7xl px-4 sm:px-8 pt-10 sm:pt-16 pb-20">
-        <h1 className="font-serif leading-[0.95] select-none">
-          <span className="block text-[13vw] sm:text-[9vw] animate-riseUp">
-            Effortless
-          </span>
-          <span
-            className="block text-[13vw] sm:text-[9vw] italic text-outline animate-riseUp text-right sm:pr-[8vw]"
-            style={{ animationDelay: "150ms" }}
-          >
-            by design
-          </span>
-        </h1>
-
-        <div className="mt-8 sm:-mt-[6vw] grid grid-cols-12 gap-4 items-end pointer-events-none">
-          <div className="col-span-7 sm:col-span-4 sm:col-start-2 relative aspect-[3/4] overflow-hidden animate-fadeIn pointer-events-auto">
-            {heroA && (
-              <Image
-                src={heroA}
-                alt="SILA Collective new launch"
-                fill
-                priority
-                sizes="(max-width: 640px) 60vw, 33vw"
-                className="object-cover animate-slowZoom"
-              />
-            )}
-          </div>
-          <div
-            className="col-span-5 sm:col-span-3 relative aspect-[3/4] overflow-hidden animate-fadeIn pointer-events-auto"
-            style={{ animationDelay: "250ms" }}
-          >
-            {heroB && (
-              <Image
-                src={heroB}
-                alt="SILA Collective kids wear"
-                fill
-                priority
-                sizes="(max-width: 640px) 40vw, 25vw"
-                className="object-cover animate-slowZoom"
-              />
-            )}
-          </div>
-          <div
-            className="hidden sm:block col-span-3 relative aspect-[3/4] overflow-hidden animate-fadeIn pointer-events-auto"
-            style={{ animationDelay: "400ms" }}
-          >
-            {heroC && (
-              <Image
-                src={heroC}
-                alt="SILA Collective womenswear"
-                fill
-                sizes="25vw"
-                className="object-cover animate-slowZoom"
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <p className="max-w-md text-smoke leading-relaxed animate-fadeIn" style={{ animationDelay: "500ms" }}>
-            Dresses, co-ord sets and twinning combos for you and your little
-            one — cut from fabrics you&apos;ll never want to take off.
-          </p>
-          <Link
-            href="/shop"
-            className="group inline-flex items-center gap-3 bg-ink text-ivory px-10 py-4 text-xs uppercase tracking-[0.25em] hover:bg-gold transition-colors duration-300"
-          >
-            Shop the collection
-            <span className="transition-transform duration-300 group-hover:translate-x-1.5">→</span>
-          </Link>
-        </div>
-      </section>
+      {/* ── HERO (3D pointer-parallax scene) ─────────────── */}
+      <Hero3D cards={heroCards} />
 
       {/* ── NEW LAUNCH RAIL ──────────────────────────────── */}
       <section className="py-16 bg-cream/60">

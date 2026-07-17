@@ -57,8 +57,8 @@ body {
 
 /* outlined display type */
 .text-outline {
-  -webkit-text-stroke: 1px #141210;
-  color: transparent;
+  -webkit-text-stroke: 1.5px #141210;
+  color: rgba(20, 18, 16, 0.07);
 }
 .text-outline-ivory {
   -webkit-text-stroke: 1px rgba(250, 247, 242, 0.9);
@@ -100,6 +100,68 @@ body {
 .link-sweep:hover::after {
   transform: scaleX(1);
   transform-origin: left;
+}
+
+/* ── 3D hero scene ─────────────────────────────── */
+.hero-scene {
+  --rx: 0deg;
+  --ry: 0deg;
+  --px: 0;
+  --py: 0;
+  perspective: 1200px;
+}
+.hero-tilt {
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.hero-layer {
+  --depth: 1;
+  translate: calc(var(--px) * var(--depth) * -22px)
+    calc(var(--py) * var(--depth) * -16px);
+  transition: translate 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: translate;
+}
+.hero-layer-back {
+  --depth: -1.2;
+}
+@keyframes heroFloat {
+  0%,
+  100% {
+    margin-top: 0;
+  }
+  50% {
+    margin-top: -12px;
+  }
+}
+.hero-float {
+  animation: heroFloat 5s ease-in-out infinite;
+}
+/* touch devices: no pointer tracking — keep gentle idle float only,
+   and keep card captions visible since there is no hover */
+@media (hover: none) {
+  .hero-tilt {
+    transform: none;
+  }
+  .hero-layer {
+    translate: 0 0;
+  }
+  .hero-card-caption {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-tilt {
+    transform: none !important;
+  }
+  .hero-layer {
+    translate: 0 0 !important;
+  }
+  .hero-float {
+    animation: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
