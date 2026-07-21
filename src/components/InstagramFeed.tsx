@@ -1,56 +1,24 @@
 import Image from "next/image";
 import Reveal from "@/components/Reveal";
-import { allProducts, byCategory } from "@/lib/catalog";
-
-type Tile = { src: string; alt: string; handle: string; collab: boolean };
 
 const PROFILE_URL = "https://instagram.com/silacollective_";
-const COLLAB_HANDLE = "@diva_by_divyaa";
 
-// No Instagram Graph API credentials are configured, so this rail simulates
-// "recent posts" using the store's own product photography instead of a live
-// feed. Every tile links out to the real profile.
-function pickTiles(): Tile[] {
-  const combos = byCategory("combo");
-  const women = byCategory("women");
-  const kids = byCategory("kids");
-  const pool: { list: typeof women; collab: boolean }[] = [
-    { list: women, collab: false },
-    { list: kids, collab: false },
-    { list: combos, collab: true },
-    { list: women, collab: false },
-    { list: combos, collab: true },
-    { list: kids, collab: false },
-    { list: women, collab: false },
-    { list: combos, collab: true },
-    { list: kids, collab: false },
-    { list: women, collab: false },
-  ];
-  const seen = new Set<string>();
-  const tiles: Tile[] = [];
-  pool.forEach((slot, i) => {
-    const candidate =
-      slot.list.find((p) => p.images[0]?.src && !seen.has(p.handle)) ??
-      allProducts().find((p) => p.images[0]?.src && !seen.has(p.handle));
-    if (!candidate || !candidate.images[0]?.src) return;
-    seen.add(candidate.handle);
-    // Only tag as a collab when the tile actually came from the combos
-    // list (a real collab product) — never on a fallback substitute.
-    const isCollabCandidate = combos.includes(candidate);
-    tiles.push({
-      src: candidate.images[0].src,
-      alt: candidate.title,
-      handle: candidate.handle,
-      collab: slot.collab && isCollabCandidate && i % 2 === 0,
-    });
-  });
-  return tiles;
-}
+type Tile = { src: string; href: string; collab?: string };
+
+// Real posts pulled directly from @silacollective_'s Instagram (logged in via
+// browser, image + permalink captured per post) — not catalog photography.
+// Collab/repost tiles (other creators' own photos) are held back until each
+// collaborator's permission to rehost is confirmed — see feedback memory
+// "collab-image-consent" — don't add collab entries here without that.
+const tiles: Tile[] = [
+  { src: "/instagram/post-01.jpg", href: "https://www.instagram.com/silacollective_/p/Da-eS6zmuSR/" },
+  { src: "/instagram/post-02.jpg", href: "https://www.instagram.com/silacollective_/p/Das-Oi0yxh7/" },
+  { src: "/instagram/post-03.jpg", href: "https://www.instagram.com/silacollective_/p/DaVOCDhmmpL/" },
+  { src: "/instagram/post-04.jpg", href: "https://www.instagram.com/silacollective_/p/DaNfFM5mp-G/" },
+  { src: "/instagram/post-05.jpg", href: "https://www.instagram.com/silacollective_/p/DaA85Nzmido/" },
+];
 
 export default function InstagramFeed() {
-  const tiles = pickTiles();
-  if (tiles.length === 0) return null;
-
   return (
     <section className="py-20 bg-cream/40 border-t border-ink/10">
       <div className="mx-auto max-w-7xl px-4 sm:px-8 flex items-end justify-between mb-8">
@@ -78,27 +46,27 @@ export default function InstagramFeed() {
       <div className="rail overflow-x-auto">
         <div className="flex gap-4 px-4 sm:px-8 w-max">
           {tiles.map((t, i) => (
-            <Reveal key={t.handle} delay={(i % 6) * 80}>
+            <Reveal key={t.href} delay={(i % 6) * 80}>
               <a
-                href={PROFILE_URL}
+                href={t.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group relative block w-[62vw] sm:w-[240px] aspect-square shrink-0 overflow-hidden bg-ink"
               >
                 <Image
                   src={t.src}
-                  alt={t.alt}
+                  alt={t.collab ? `Collab post with ${t.collab}` : "SILA Collective Instagram post"}
                   fill
                   sizes="(max-width: 640px) 62vw, 240px"
                   className="object-cover card-img"
                 />
                 <div className="absolute inset-0 bg-ink/0 group-hover:bg-ink/50 transition-colors duration-300" />
                 <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-ivory text-xs uppercase tracking-[0.2em]">
-                  <span>♡ Shop the look</span>
+                  <span>♡ View post</span>
                 </div>
                 {t.collab && (
                   <span className="absolute top-3 left-3 bg-ivory/90 text-ink text-[10px] uppercase tracking-[0.15em] px-2.5 py-1">
-                    Collab · {COLLAB_HANDLE}
+                    Collab · {t.collab}
                   </span>
                 )}
               </a>
