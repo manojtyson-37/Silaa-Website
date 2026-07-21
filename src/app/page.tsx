@@ -6,11 +6,11 @@ import Hero3D from "@/components/Hero3D";
 import InstagramFeed from "@/components/InstagramFeed";
 import { allProducts, byCategory, newLaunches, inr, price } from "@/lib/catalog";
 
-export default function Home() {
-  const launches = newLaunches().slice(0, 8);
-  const women = byCategory("women");
-  const kids = byCategory("kids");
-  const combos = byCategory("combo");
+export default async function Home() {
+  const launches = (await newLaunches()).slice(0, 8);
+  const women = await byCategory("women");
+  const kids = await byCategory("kids");
+  const combos = await byCategory("combo");
   const heroProducts = [launches[3], launches[2], launches[1]].filter(Boolean);
   const heroCards = heroProducts
     .map((p) => ({
@@ -145,7 +145,7 @@ export default function Home() {
             href="/shop"
             className="inline-block border border-ink px-12 py-4 text-xs uppercase tracking-[0.25em] hover:bg-ink hover:text-ivory transition-colors duration-300"
           >
-            View all {allProducts().length} styles
+            View all {(await allProducts()).length} styles
           </Link>
         </div>
       </section>

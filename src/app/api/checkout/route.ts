@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   }
 
   // Recompute amount server-side from the catalog — never trust client totals.
-  const priced = priceItems(body.items);
+  const priced = await priceItems(body.items);
   if (!priced) {
     return NextResponse.json({ error: "Invalid cart" }, { status: 400 });
   }

@@ -1,4 +1,4 @@
-import raw from "@/data/products.json";
+import { client } from "@/sanity/lib/client";
 
 export type Variant = {
   id: number;
@@ -20,8 +20,6 @@ export type Product = {
 
 export type Category = "women" | "kids" | "combo";
 
-type RawCatalog = { products: Product[] };
-
 // Allowlist sanitizer for catalog-sourced rich text rendered via
 // dangerouslySetInnerHTML. The catalog is the client's own Shopify export,
 // but a future re-export must not become an injection channel.
@@ -33,15 +31,33 @@ function sanitizeHtml(html: string): string {
     .replace(/javascript:/gi, "");
 }
 
-const catalog = (raw as unknown as RawCatalog).products
-  .filter((p) => Number(p.variants[0]?.price ?? 0) > 0)
-  .map((p) => ({ ...p, body_html: sanitizeHtml(p.body_html ?? "") }));
+let cachedCatalog: Product[] | null = null;
+let catalogCacheTime = 0;
+const CACHE_TTL_MS = 1000 * 60; // 1 minute cache
 
-export function allProducts(): Product[] {
+export async function allProducts(): Promise<Product[]> {
+  const now = Date.now();
+  if (cachedCatalog && now - catalogCacheTime < CACHE_TTL_MS) {
+    return cachedCatalog;
+  }
+  const sanityProducts = await client.fetch(`*[_type == "product"]`);
+  const catalog = sanityProducts.map((p: any) => ({
+    id: p.id,
+    title: p.title,
+    handle: p.slug?.current || "",
+    body_html: sanitizeHtml(p.bodyHtml || ""),
+    tags: p.tags || [],
+    images: (p.imageUrls || []).map((src: string) => ({ src, width: 800, height: 800 })),
+    variants: p.variants || []
+  })).filter((p: Product) => Number(p.variants[0]?.price ?? 0) > 0);
+  
+  cachedCatalog = catalog;
+  catalogCacheTime = now;
   return catalog;
 }
 
-export function productByHandle(handle: string): Product | undefined {
+export async function productByHandle(handle: string): Promise<Product | undefined> {
+  const catalog = await allProducts();
   return catalog.find((p) => p.handle === handle);
 }
 
@@ -56,11 +72,13 @@ export function isNewLaunch(p: Product): boolean {
   return p.tags.some((t) => t.toLowerCase() === "new launch");
 }
 
-export function byCategory(cat: Category): Product[] {
+export async function byCategory(cat: Category): Promise<Product[]> {
+  const catalog = await allProducts();
   return catalog.filter((p) => productCategory(p) === cat);
 }
 
-export function newLaunches(): Product[] {
+export async function newLaunches(): Promise<Product[]> {
+  const catalog = await allProducts();
   return catalog.filter(isNewLaunch);
 }
 
@@ -74,7 +92,8 @@ export function compareAt(p: Product): number | null {
   return n > price(p) ? n : null;
 }
 
-export function variantById(variantId: number): { product: Product; variant: Variant } | undefined {
+export async function variantById(variantId: number): Promise<{ product: Product; variant: Variant } | undefined> {
+  const catalog = await allProducts();
   for (const product of catalog) {
     const variant = product.variants.find((v) => v.id === variantId);
     if (variant) return { product, variant };
@@ -96,9 +115,6 @@ function variantTokens(v: Variant): string[] {
 
 export type FilterOptions = { sizes: string[]; ages: string[]; colors: string[] };
 
-// Product data has no dedicated size/color/age fields — Shopify variant
-// titles like "S / White" or "6-9 months" are the only source, so filter
-// options are derived by classifying each "/"-separated token.
 export function filterOptions(products: Product[]): FilterOptions {
   const sizes = new Set<string>();
   const ages = new Set<string>();
@@ -114,8 +130,6 @@ export function filterOptions(products: Product[]): FilterOptions {
     )
   );
   const sizeOrder = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
-  // Normalize "N months" and "N-M years" to a months figure so mixed-unit
-  // age brackets ("2-3 years" vs "6-9 months") sort chronologically.
   const ageStartMonths = (token: string): number => {
     const n = parseInt(token, 10) || 0;
     return /year/i.test(token) ? n * 12 : n;

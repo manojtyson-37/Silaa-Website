@@ -69,7 +69,7 @@ function hrefWith(sp: ShopSearchParams, overrides: Record<string, string | undef
   return qs ? `/shop?${qs}` : "/shop";
 }
 
-export default function ShopPage({
+export default async function ShopPage({
   searchParams,
 }: {
   searchParams: ShopSearchParams;
@@ -77,10 +77,10 @@ export default function ShopPage({
   const c = searchParams.c ?? "all";
   let products =
     c === "new"
-      ? newLaunches()
+      ? await newLaunches()
       : c === "women" || c === "kids" || c === "combo"
-      ? byCategory(c as Category)
-      : allProducts();
+      ? await byCategory(c as Category)
+      : await allProducts();
 
   const options = filterOptions(products);
   const selectedSizes = toArray(searchParams.size);

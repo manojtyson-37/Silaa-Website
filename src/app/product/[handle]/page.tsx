@@ -5,20 +5,21 @@ import ProductView from "@/components/ProductView";
 import ProductCard from "@/components/ProductCard";
 import Reveal from "@/components/Reveal";
 
-export function generateStaticParams() {
-  return allProducts().map((p) => ({ handle: p.handle }));
+export async function generateStaticParams() {
+  const products = await allProducts();
+  return products.map((p) => ({ handle: p.handle }));
 }
 
-export function generateMetadata({ params }: { params: { handle: string } }) {
-  const p = productByHandle(params.handle);
+export async function generateMetadata({ params }: { params: { handle: string } }) {
+  const p = await productByHandle(params.handle);
   return { title: p ? `${p.title} — SILA Collective` : "SILA Collective" };
 }
 
-export default function ProductPage({ params }: { params: { handle: string } }) {
-  const product = productByHandle(params.handle);
+export default async function ProductPage({ params }: { params: { handle: string } }) {
+  const product = await productByHandle(params.handle);
   if (!product) notFound();
 
-  const related = byCategory(productCategory(product))
+  const related = (await byCategory(productCategory(product)))
     .filter((p) => p.id !== product.id)
     .slice(0, 4);
 

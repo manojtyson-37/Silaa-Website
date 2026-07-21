@@ -48,9 +48,9 @@ export function validateCustomer(c: unknown): Customer | null {
 }
 
 /** Validate items against catalog; returns priced lines + total paise, or null. */
-export function priceItems(items: unknown):
-  | { lines: OrderRecord["items"]; amountPaise: number }
-  | null {
+export async function priceItems(items: unknown):
+  Promise<| { lines: OrderRecord["items"]; amountPaise: number }
+  | null> {
   if (!Array.isArray(items) || items.length === 0 || items.length > 30) return null;
   const lines: OrderRecord["items"] = [];
   let amountPaise = 0;
@@ -58,7 +58,7 @@ export function priceItems(items: unknown):
     const variantId = Number((raw as Record<string, unknown>)?.variantId);
     const qty = Math.floor(Number((raw as Record<string, unknown>)?.qty));
     if (!Number.isFinite(qty) || qty < 1 || qty > 10) return null;
-    const found = variantById(variantId);
+    const found = await variantById(variantId);
     if (!found || !found.variant.available) return null;
     const price = Number(found.variant.price);
     lines.push({

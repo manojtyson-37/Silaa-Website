@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "@sanity/image-url": "^2.1.1",
+    "dotenv": "^17.4.2",
     "next": "14.2.30",
     "next-sanity": "^13.1.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "sanity": "^6.5.0",
+    "sanity": "^3.48.0",
     "styled-components": "^6.4.4"
   },
   "devDependencies": {

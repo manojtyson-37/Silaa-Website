@@ -14,9 +14,10 @@ export async function POST(req: Request) {
 
   const customer = validateCustomer(body.customer);
   if (!customer) {
-    return NextResponse.json({ error: "Invalid delivery details" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid customer" }, { status: 400 });
   }
-  const priced = priceItems(body.items);
+
+  const priced = await priceItems(body.items);
   if (!priced) {
     return NextResponse.json({ error: "Invalid cart" }, { status: 400 });
   }

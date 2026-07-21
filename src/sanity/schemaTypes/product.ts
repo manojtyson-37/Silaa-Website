@@ -6,6 +6,11 @@ export default defineType({
   type: 'document',
   fields: [
     defineField({
+      name: 'id',
+      title: 'Original ID',
+      type: 'number',
+    }),
+    defineField({
       name: 'title',
       title: 'Title',
       type: 'string',
@@ -48,6 +53,23 @@ export default defineType({
       type: 'array',
       of: [{ type: 'url' }],
       description: 'Temporary field for migrated images from Shopify CDN',
+    }),
+    defineField({
+      name: 'variants',
+      title: 'Variants',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'id', type: 'number', title: 'Variant ID' },
+            { name: 'title', type: 'string', title: 'Title' },
+            { name: 'price', type: 'string', title: 'Price' },
+            { name: 'compare_at_price', type: 'string', title: 'Compare at Price' },
+            { name: 'available', type: 'boolean', title: 'Available' },
+          ]
+        }
+      ]
     }),
     defineField({
       name: 'images',
