@@ -39,12 +39,17 @@ const config: Config = {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        whatsappGlow: {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(37,211,102,0.55)" },
+          "50%": { boxShadow: "0 0 0 14px rgba(37,211,102,0)" },
+        },
       },
       animation: {
         marquee: "marquee 28s linear infinite",
         riseUp: "riseUp 0.9s cubic-bezier(0.22,1,0.36,1) both",
         fadeIn: "fadeIn 1.2s ease both",
         slowZoom: "slowZoom 14s ease-out both",
+        "whatsapp-glow": "whatsappGlow 2.2s ease-in-out infinite",
       },
     },
   },

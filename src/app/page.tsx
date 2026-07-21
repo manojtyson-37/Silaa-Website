@@ -3,6 +3,7 @@ import Link from "next/link";
 import Reveal from "@/components/Reveal";
 import ProductCard from "@/components/ProductCard";
 import Hero3D from "@/components/Hero3D";
+import InstagramFeed from "@/components/InstagramFeed";
 import { allProducts, byCategory, newLaunches, inr, price } from "@/lib/catalog";
 
 export default function Home() {
@@ -151,12 +152,14 @@ export default function Home() {
 
       {/* ── VALUES ───────────────────────────────────────── */}
       <section className="border-y border-ink/10 bg-cream/40">
-        <div className="mx-auto max-w-7xl px-4 sm:px-8 py-14 grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
+        <div className="mx-auto max-w-7xl px-4 sm:px-8 py-14 grid grid-cols-2 sm:grid-cols-3 gap-8 text-center">
           {[
             ["Quality you can feel", "Fabrics chosen by hand"],
             ["All-day comfort", "Breathable, easy fits"],
             ["COD available", "Pay when it arrives"],
             ["Effortless style", "New drops every week"],
+            ["Easy returns", "Simple, hassle-free process"],
+            ["Pan India shipping", "Delivered wherever you are"],
           ].map(([t, s], i) => (
             <Reveal key={t} delay={i * 100}>
               <p className="font-serif text-xl">{t}</p>
@@ -165,6 +168,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* ── INSTAGRAM FEED ────────────────────────────────── */}
+      <InstagramFeed />
     </div>
   );
 }

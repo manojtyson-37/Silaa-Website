@@ -82,6 +82,59 @@ export function variantById(variantId: number): { product: Product; variant: Var
   return undefined;
 }
 
+const SIZE_TOKENS = new Set(["XS", "S", "M", "L", "XL", "2XL", "3XL"]);
+
+function classifyToken(token: string): "size" | "age" | "color" {
+  if (SIZE_TOKENS.has(token.toUpperCase()) || /^\d+$/.test(token)) return "size";
+  if (/month|year/i.test(token)) return "age";
+  return "color";
+}
+
+function variantTokens(v: Variant): string[] {
+  return v.title.split("/").map((s) => s.trim()).filter(Boolean);
+}
+
+export type FilterOptions = { sizes: string[]; ages: string[]; colors: string[] };
+
+// Product data has no dedicated size/color/age fields — Shopify variant
+// titles like "S / White" or "6-9 months" are the only source, so filter
+// options are derived by classifying each "/"-separated token.
+export function filterOptions(products: Product[]): FilterOptions {
+  const sizes = new Set<string>();
+  const ages = new Set<string>();
+  const colors = new Set<string>();
+  products.forEach((p) =>
+    p.variants.forEach((v) =>
+      variantTokens(v).forEach((token) => {
+        const kind = classifyToken(token);
+        if (kind === "size") sizes.add(token);
+        else if (kind === "age") ages.add(token);
+        else colors.add(token);
+      })
+    )
+  );
+  const sizeOrder = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+  // Normalize "N months" and "N-M years" to a months figure so mixed-unit
+  // age brackets ("2-3 years" vs "6-9 months") sort chronologically.
+  const ageStartMonths = (token: string): number => {
+    const n = parseInt(token, 10) || 0;
+    return /year/i.test(token) ? n * 12 : n;
+  };
+  const sizeRank = (s: string) => {
+    const i = sizeOrder.indexOf(s.toUpperCase());
+    return i === -1 ? sizeOrder.length : i;
+  };
+  return {
+    sizes: Array.from(sizes).sort((a, b) => sizeRank(a) - sizeRank(b)),
+    ages: Array.from(ages).sort((a, b) => ageStartMonths(a) - ageStartMonths(b)),
+    colors: Array.from(colors).sort(),
+  };
+}
+
+export function productHasToken(p: Product, token: string): boolean {
+  return p.variants.some((v) => variantTokens(v).includes(token));
+}
+
 export function inr(n: number): string {
   return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }

@@ -1,4 +1,11 @@
 import Link from "next/link";
+import {
+  CONTACT_EMAIL,
+  FACEBOOK_URL,
+  WHATSAPP_COMMUNITY_URL,
+  WHATSAPP_DISPLAY,
+  WHATSAPP_URL,
+} from "@/lib/contact";
 
 export default function Footer() {
   return (
@@ -16,6 +23,7 @@ export default function Footer() {
         <div className="text-sm">
           <p className="uppercase tracking-[0.2em] text-ivory/50 mb-4 text-xs">Explore</p>
           <ul className="space-y-3">
+            <li><Link href="/" className="link-sweep">Home</Link></li>
             <li><Link href="/shop" className="link-sweep">Shop All</Link></li>
             <li><Link href="/shop?c=women" className="link-sweep">Women</Link></li>
             <li><Link href="/shop?c=kids" className="link-sweep">Kids</Link></li>
@@ -28,6 +36,41 @@ export default function Footer() {
           <ul className="space-y-3">
             <li><Link href="/contact" className="link-sweep">Contact Us</Link></li>
             <li><Link href="/policy" className="link-sweep">Shipping &amp; Returns</Link></li>
+            <li>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="link-sweep">
+                {CONTACT_EMAIL}
+              </a>
+            </li>
+            <li>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-sweep"
+              >
+                WhatsApp — {WHATSAPP_DISPLAY}
+              </a>
+            </li>
+            <li>
+              <a
+                href={WHATSAPP_COMMUNITY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-sweep"
+              >
+                WhatsApp Community
+              </a>
+            </li>
+            <li>
+              <a
+                href={FACEBOOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-sweep"
+              >
+                Facebook — SILA Collective
+              </a>
+            </li>
             <li>
               <a
                 href="https://instagram.com/silacollective_"
