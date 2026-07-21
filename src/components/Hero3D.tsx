@@ -75,34 +75,39 @@ export default function Hero3D({ cards }: { cards: HeroCard[] }) {
       className="hero-scene relative mx-auto max-w-7xl px-4 sm:px-8 pt-10 sm:pt-16 pb-20"
     >
       <div className="hero-tilt">
-        {/* deep background layer — outlined echo type */}
+        {/* deep background layer — pure solid, massive, ultra-faint text */}
         <p
           aria-hidden
-          className="hero-layer hero-layer-back pointer-events-none select-none absolute top-6 left-0 right-0 z-0 text-center font-serif italic hidden sm:block sm:text-[min(11vw,140px)] leading-none text-outline opacity-[0.13] whitespace-nowrap"
+          className="hero-layer hero-layer-back pointer-events-none select-none absolute top-[-4%] left-0 right-0 z-0 text-center font-serif italic hidden sm:block sm:text-[min(14vw,180px)] leading-none opacity-[0.03] text-ink whitespace-nowrap overflow-hidden"
         >
           SILA Collective
         </p>
 
-        <h1 className="relative z-10 font-serif leading-[0.95] select-none [transform:translateZ(60px)] text-[clamp(2.6rem,13vw,4.2rem)] sm:text-[clamp(4rem,9vw,9rem)]">
+        {/* Clean, massive primary heading */}
+        <h1 className="relative z-10 font-serif leading-[0.9] select-none [transform:translateZ(80px)] text-[clamp(3.5rem,15vw,6rem)] sm:text-[clamp(5rem,11vw,11rem)] text-center sm:text-left flex flex-col items-center sm:items-start tracking-tight">
           <span className="block animate-riseUp">Effortless</span>
           <span
-            className="block italic text-outline animate-riseUp text-right sm:pr-[8vw]"
+            className="block italic text-gold animate-riseUp sm:ml-[8vw]"
             style={{ animationDelay: "150ms" }}
           >
             by design
           </span>
         </h1>
 
-        <div className="mt-8 sm:-mt-[6vw] grid grid-cols-12 gap-4 items-end [transform-style:preserve-3d]">
+        <div className="mt-12 sm:-mt-[4vw] grid grid-cols-12 gap-4 items-end [transform-style:preserve-3d] relative">
+          
+          {/* Subtle Glow / Lighting Mesh behind cards */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-goldlight/20 to-transparent blur-[100px] z-0 -mx-10 rounded-full [transform:translateZ(20px)] opacity-60 pointer-events-none" />
+
           {cards.slice(0, 3).map((card, i) => (
             <div
               key={card.href}
-              className={`hero-layer ${positions[i]} ${depths[i]} relative z-20 animate-fadeIn`}
+              className={`hero-layer ${positions[i]} ${depths[i]} relative z-20 animate-fadeIn transition-transform duration-700 ease-out`}
               style={{ animationDelay: `${i * 180}ms`, ["--depth" as string]: i === 2 ? 1.6 : i === 0 ? 1 : 0.55 }}
             >
               <Link
                 href={card.href}
-                className="group block relative aspect-[3/4] overflow-hidden bg-cream shadow-[0_30px_60px_-20px_rgba(20,18,16,0.35)]"
+                className="group block relative aspect-[3/4] overflow-hidden rounded-md bg-cream shadow-[0_20px_40px_-15px_rgba(20,18,16,0.4)] sm:shadow-[0_40px_80px_-20px_rgba(20,18,16,0.35)]"
               >
                 <Image
                   src={card.src}
@@ -110,35 +115,35 @@ export default function Hero3D({ cards }: { cards: HeroCard[] }) {
                   fill
                   priority={i < 2}
                   sizes="(max-width: 640px) 60vw, 33vw"
-                  className="object-cover animate-slowZoom"
+                  className="object-cover animate-slowZoom scale-105 group-hover:scale-110 transition-transform duration-[1.5s] ease-[cubic-bezier(0.22,1,0.36,1)]"
                 />
-                <span className="hero-card-caption absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 group-focus-within:translate-y-0 transition-transform duration-500 bg-ivory/95 backdrop-blur px-4 py-3 text-xs uppercase tracking-[0.15em] flex justify-between">
-                  <span className="truncate mr-2">{card.title}</span>
-                  <span className="text-gold shrink-0">{card.price}</span>
+                <span className="hero-card-caption absolute inset-x-2 bottom-2 translate-y-[120%] group-hover:translate-y-0 group-focus-within:translate-y-0 transition-transform duration-500 ease-out bg-ivory/80 backdrop-blur-md border border-ivory/50 rounded px-4 py-3 text-[10px] uppercase tracking-[0.2em] flex justify-between shadow-lg">
+                  <span className="truncate mr-2 font-medium">{card.title}</span>
+                  <span className="text-gold shrink-0 font-medium">{card.price}</span>
                 </span>
               </Link>
             </div>
           ))}
 
-          {/* floating accents at extreme depth */}
+          {/* floating accents at extreme depth - Glassmorphism */}
           <span
             aria-hidden
-            className="hero-layer hero-float hidden sm:grid absolute z-30 pointer-events-none -top-8 right-[14%] sm:[transform:translateZ(180px)] w-16 h-16 place-items-center rounded-full border border-gold/50 bg-ivory/70 backdrop-blur text-gold text-xl"
-            style={{ ["--depth" as string]: 2.2 }}
+            className="hero-layer hero-float hidden sm:grid absolute z-30 pointer-events-none -top-12 right-[12%] sm:[transform:translateZ(220px)] w-20 h-20 place-items-center rounded-full border border-white/60 bg-white/30 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.1)] text-gold text-2xl"
+            style={{ ["--depth" as string]: 2.5 }}
           >
             ✦
           </span>
           <span
             aria-hidden
-            className="hero-layer hero-float hidden sm:block absolute z-30 pointer-events-none bottom-[18%] left-[2%] sm:[transform:translateZ(120px)] bg-ink text-ivory text-[11px] uppercase tracking-[0.25em] px-4 py-2.5"
-            style={{ ["--depth" as string]: 1.4, animationDelay: "1.2s" }}
+            className="hero-layer hero-float hidden sm:block absolute z-30 pointer-events-none bottom-[12%] left-[4%] sm:[transform:translateZ(160px)] bg-ink/90 backdrop-blur-md border border-ink/20 text-ivory text-[10px] uppercase tracking-[0.3em] px-5 py-3 rounded-full shadow-2xl"
+            style={{ ["--depth" as string]: 1.8, animationDelay: "1.2s" }}
           >
             COD available
           </span>
           <span
             aria-hidden
-            className="hero-layer hero-float hidden lg:block absolute z-30 pointer-events-none top-[30%] right-[9%] sm:[transform:translateZ(200px)] bg-gold text-ivory text-[11px] uppercase tracking-[0.25em] px-4 py-2.5"
-            style={{ ["--depth" as string]: 2.6, animationDelay: "0.6s" }}
+            className="hero-layer hero-float hidden lg:block absolute z-30 pointer-events-none top-[25%] right-[5%] sm:[transform:translateZ(280px)] bg-white/40 backdrop-blur-lg border border-white/60 text-ink text-[10px] font-medium uppercase tracking-[0.3em] px-5 py-3 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)]"
+            style={{ ["--depth" as string]: 3.2, animationDelay: "0.6s" }}
           >
             New drops weekly
           </span>
