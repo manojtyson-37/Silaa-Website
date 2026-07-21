@@ -9,6 +9,8 @@ export default defineType({
       name: 'id',
       title: 'Original ID',
       type: 'number',
+      hidden: true,
+      initialValue: () => Math.floor(Math.random() * 1000000000),
     }),
     defineField({
       name: 'title',
@@ -28,66 +30,112 @@ export default defineType({
     }),
     defineField({
       name: 'price',
-      title: 'Price',
+      title: 'Price (₹)',
       type: 'number',
+      description: 'Default base price of the product',
+      validation: (rule) => rule.required().min(0),
+    }),
+    defineField({
+      name: 'description',
+      title: 'Description',
+      type: 'array',
+      of: [{ type: 'block' }],
+      description: 'Write a beautiful description for your product. (Replaces old HTML field)',
     }),
     defineField({
       name: 'bodyHtml',
-      title: 'Description (HTML)',
+      title: 'Legacy Description (HTML)',
       type: 'text',
+      hidden: true,
     }),
     defineField({
       name: 'vendor',
       title: 'Vendor',
       type: 'string',
+      hidden: true,
+    }),
+    defineField({
+      name: 'category',
+      title: 'Category',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'Women', value: 'women' },
+          { title: 'Kids', value: 'kids' },
+          { title: 'Combo', value: 'combo' }
+        ],
+        layout: 'radio'
+      }
+    }),
+    defineField({
+      name: 'isNewLaunch',
+      title: 'Is this a New Launch?',
+      type: 'boolean',
+      initialValue: false,
     }),
     defineField({
       name: 'tags',
-      title: 'Tags',
+      title: 'Legacy Tags',
       type: 'array',
       of: [{ type: 'string' }],
+      hidden: true,
     }),
     defineField({
       name: 'imageUrls',
-      title: 'Image URLs',
+      title: 'Legacy Image URLs',
       type: 'array',
       of: [{ type: 'url' }],
-      description: 'Temporary field for migrated images from Shopify CDN',
+      hidden: true,
+    }),
+    defineField({
+      name: 'images',
+      title: 'Product Images',
+      type: 'array',
+      of: [{ type: 'image', options: { hotspot: true } }],
+      description: 'Upload high-quality images here. These will be prioritized over legacy images.',
     }),
     defineField({
       name: 'variants',
-      title: 'Variants',
+      title: 'Sizes & Colors (Variants)',
       type: 'array',
       of: [
         {
           type: 'object',
           fields: [
-            { name: 'id', type: 'number', title: 'Variant ID' },
-            { name: 'title', type: 'string', title: 'Title' },
-            { name: 'price', type: 'string', title: 'Price' },
-            { name: 'compare_at_price', type: 'string', title: 'Compare at Price' },
-            { name: 'available', type: 'boolean', title: 'Available' },
-          ]
+            { name: 'id', type: 'number', title: 'Variant ID', hidden: true, initialValue: () => Math.floor(Math.random() * 1000000000) },
+            { name: 'title', type: 'string', title: 'Size/Color (e.g. "S", "M", "Red")' },
+            { name: 'price', type: 'string', title: 'Price (₹)' },
+            { name: 'compare_at_price', type: 'string', title: 'Compare at Price (₹) (Optional)' },
+            { name: 'available', type: 'boolean', title: 'In Stock?', initialValue: true },
+          ],
+          preview: {
+            select: {
+              title: 'title',
+              price: 'price',
+              available: 'available'
+            },
+            prepare({ title, price, available }) {
+              return {
+                title: title || 'Unnamed variant',
+                subtitle: `₹${price || 0} - ${available ? 'In Stock' : 'Out of Stock'}`
+              }
+            }
+          }
         }
       ]
-    }),
-    defineField({
-      name: 'images',
-      title: 'Images',
-      type: 'array',
-      of: [{ type: 'image', options: { hotspot: true } }],
     }),
   ],
   preview: {
     select: {
       title: 'title',
-      subtitle: 'price',
+      price: 'price',
+      media: 'images.0'
     },
-    prepare(selection) {
-      const { title, subtitle } = selection
+    prepare({ title, price, media }) {
       return {
         title,
-        subtitle: `₹${subtitle}`,
+        subtitle: price ? `₹${price}` : 'No price set',
+        media
       }
     },
   },

@@ -14,6 +14,8 @@ export type Product = {
   handle: string;
   body_html: string;
   tags: string[];
+  category?: Category;
+  isNewLaunch?: boolean;
   images: { src: string; width: number; height: number }[];
   variants: Variant[];
 };
@@ -21,8 +23,7 @@ export type Product = {
 export type Category = "women" | "kids" | "combo";
 
 // Allowlist sanitizer for catalog-sourced rich text rendered via
-// dangerouslySetInnerHTML. The catalog is the client's own Shopify export,
-// but a future re-export must not become an injection channel.
+// dangerouslySetInnerHTML.
 function sanitizeHtml(html: string): string {
   return html
     .replace(/<(script|style|iframe|object|embed|form|link|meta)[\s\S]*?(<\/\1>|\/>|>)/gi, "")
@@ -31,9 +32,41 @@ function sanitizeHtml(html: string): string {
     .replace(/javascript:/gi, "");
 }
 
+// Convert portable text blocks to simple HTML
+function blocksToHtml(blocks: any[]): string {
+  if (!blocks || !Array.isArray(blocks)) return "";
+  return blocks.map(block => {
+    if (block._type !== 'block' || !block.children) return '';
+    let text = block.children.map((c: any) => {
+       let t = c.text || '';
+       if (c.marks?.includes('strong')) t = `<strong>${t}</strong>`;
+       if (c.marks?.includes('em')) t = `<em>${t}</em>`;
+       return t;
+    }).join('');
+    if (block.style === 'h1') return `<h1>${text}</h1>`;
+    if (block.style === 'h2') return `<h2>${text}</h2>`;
+    if (block.style === 'h3') return `<h3>${text}</h3>`;
+    return `<p>${text}</p>`;
+  }).join('');
+}
+
 let cachedCatalog: Product[] | null = null;
 let catalogCacheTime = 0;
 const CACHE_TTL_MS = 1000 * 60; // 1 minute cache
+
+// Helper to extract image URL from Sanity image object (since we didn't use @sanity/image-url)
+function getSanityImageUrl(image: any): string | null {
+  if (!image?.asset?._ref) return null;
+  // asset._ref looks like: image-Tb9Ew8CXIwaY6R1kjMvI0uRR-2000x3000-jpg
+  const parts = image.asset._ref.split('-');
+  if (parts.length < 4) return null;
+  const id = parts[1];
+  const dimensions = parts[2];
+  const format = parts[3];
+  const projectId = client.config().projectId;
+  const dataset = client.config().dataset;
+  return `https://cdn.sanity.io/images/${projectId}/${dataset}/${id}-${dimensions}.${format}`;
+}
 
 export async function allProducts(): Promise<Product[]> {
   const now = Date.now();
@@ -41,15 +74,26 @@ export async function allProducts(): Promise<Product[]> {
     return cachedCatalog;
   }
   const sanityProducts = await client.fetch(`*[_type == "product"]`);
-  const catalog = sanityProducts.map((p: any) => ({
-    id: p.id,
-    title: p.title,
-    handle: p.slug?.current || "",
-    body_html: sanitizeHtml(p.bodyHtml || ""),
-    tags: p.tags || [],
-    images: (p.imageUrls || []).map((src: string) => ({ src, width: 800, height: 800 })),
-    variants: p.variants || []
-  })).filter((p: Product) => Number(p.variants[0]?.price ?? 0) > 0);
+  const catalog = sanityProducts.map((p: any) => {
+    // Combine legacy image URLs and new Sanity images
+    const legacyImages = (p.imageUrls || []).map((src: string) => ({ src, width: 800, height: 800 }));
+    const newImages = (p.images || [])
+      .map((img: any) => getSanityImageUrl(img))
+      .filter(Boolean)
+      .map((src: string) => ({ src, width: 800, height: 800 }));
+      
+    return {
+      id: p.id,
+      title: p.title,
+      handle: p.slug?.current || "",
+      body_html: p.description ? blocksToHtml(p.description) : sanitizeHtml(p.bodyHtml || ""),
+      tags: p.tags || [],
+      category: p.category,
+      isNewLaunch: p.isNewLaunch,
+      images: newImages.length > 0 ? newImages : legacyImages,
+      variants: p.variants || []
+    };
+  }).filter((p: Product) => Number(p.variants[0]?.price ?? 0) > 0);
   
   cachedCatalog = catalog;
   catalogCacheTime = now;
@@ -62,6 +106,7 @@ export async function productByHandle(handle: string): Promise<Product | undefin
 }
 
 export function productCategory(p: Product): Category {
+  if (p.category) return p.category as Category;
   const tags = p.tags.map((t) => t.toUpperCase());
   if (tags.includes("COMBO") || tags.some((t) => t.includes("DUO"))) return "combo";
   if (tags.includes("KIDS") || tags.includes("GIRLS")) return "kids";
@@ -69,6 +114,7 @@ export function productCategory(p: Product): Category {
 }
 
 export function isNewLaunch(p: Product): boolean {
+  if (p.isNewLaunch) return true;
   return p.tags.some((t) => t.toLowerCase() === "new launch");
 }
 
