@@ -18,6 +18,17 @@ export type Product = {
   isNewLaunch?: boolean;
   images: { src: string; width: number; height: number }[];
   variants: Variant[];
+  price: number;
+  compareAtPrice: number | null;
+};
+
+export type Campaign = {
+  id: string;
+  title: string;
+  discountCode: string | null;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  isActive: boolean;
 };
 
 export type Category = "women" | "kids" | "combo";
@@ -82,6 +93,18 @@ export async function allProducts(): Promise<Product[]> {
       .filter(Boolean)
       .map((src: string) => ({ src, width: 800, height: 800 }));
       
+    // Ensure there is at least one variant, or create a default one
+    let variants = p.variants || [];
+    if (variants.length === 0) {
+      variants = [{
+        id: Math.floor(Math.random() * 1000000000),
+        title: 'Default Title',
+        price: p.price ? String(p.price) : "0",
+        compare_at_price: p.compareAtPrice ? String(p.compareAtPrice) : null,
+        available: true,
+      }];
+    }
+
     return {
       id: p.id,
       title: p.title,
@@ -91,9 +114,11 @@ export async function allProducts(): Promise<Product[]> {
       category: p.category,
       isNewLaunch: p.isNewLaunch,
       images: newImages.length > 0 ? newImages : legacyImages,
-      variants: p.variants || []
+      variants,
+      price: p.price || Number(variants[0]?.price || 0),
+      compareAtPrice: p.compareAtPrice || Number(variants[0]?.compare_at_price || 0) || null,
     };
-  }).filter((p: Product) => Number(p.variants[0]?.price ?? 0) > 0);
+  }).filter((p: Product) => p.price > 0 || Number(p.variants[0]?.price ?? 0) > 0);
   
   cachedCatalog = catalog;
   catalogCacheTime = now;
@@ -129,11 +154,11 @@ export async function newLaunches(): Promise<Product[]> {
 }
 
 export function price(p: Product): number {
-  return Number(p.variants[0]?.price ?? 0);
+  return p.price || Number(p.variants[0]?.price ?? 0);
 }
 
 export function compareAt(p: Product): number | null {
-  const c = p.variants[0]?.compare_at_price;
+  const c = p.compareAtPrice || p.variants[0]?.compare_at_price;
   const n = c ? Number(c) : 0;
   return n > price(p) ? n : null;
 }
@@ -145,6 +170,39 @@ export async function variantById(variantId: number): Promise<{ product: Product
     if (variant) return { product, variant };
   }
   return undefined;
+}
+
+let cachedCampaigns: Campaign[] | null = null;
+let campaignsCacheTime = 0;
+
+export async function activeCampaigns(): Promise<Campaign[]> {
+  const now = Date.now();
+  if (cachedCampaigns && now - campaignsCacheTime < CACHE_TTL_MS) {
+    return cachedCampaigns;
+  }
+  const campaigns = await client.fetch(`*[_type == "campaign" && isActive == true]`);
+  const parsed = campaigns.map((c: any) => ({
+    id: c._id,
+    title: c.title,
+    discountCode: c.discountCode || null,
+    discountType: c.discountType,
+    discountValue: Number(c.discountValue) || 0,
+    isActive: !!c.isActive,
+  }));
+  cachedCampaigns = parsed;
+  campaignsCacheTime = now;
+  return parsed;
+}
+
+export async function resolveDiscount(code?: string): Promise<Campaign | null> {
+  const campaigns = await activeCampaigns();
+  if (code) {
+    const found = campaigns.find((c) => c.discountCode?.toUpperCase() === code.toUpperCase());
+    if (found) return found;
+  }
+  // Fall back to the best automatic discount
+  const automatic = campaigns.filter((c) => !c.discountCode);
+  return automatic[0] || null;
 }
 
 const SIZE_TOKENS = new Set(["XS", "S", "M", "L", "XL", "2XL", "3XL"]);

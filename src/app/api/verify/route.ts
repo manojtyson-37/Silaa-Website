@@ -54,6 +54,7 @@ export async function POST(req: Request) {
         amount: pending.amount,
         customer: pending.customer,
         items: pending.items,
+        campaign: pending.campaign,
         payment: { razorpayOrderId: orderId, razorpayPaymentId: paymentId },
       });
     } else {

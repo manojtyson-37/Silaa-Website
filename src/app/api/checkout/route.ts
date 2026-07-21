@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   }
 
   // Recompute amount server-side from the catalog — never trust client totals.
-  const priced = await priceItems(body.items);
+  const priced = await priceItems(body.items, body.discountCode as string | undefined);
   if (!priced) {
     return NextResponse.json({ error: "Invalid cart" }, { status: 400 });
   }
@@ -55,6 +55,7 @@ export async function POST(req: Request) {
           items: itemsSummary,
           customer: `${customer.name} / ${customer.phone}`,
           address: `${customer.address}, ${customer.city ?? ""} ${customer.pincode}`.slice(0, 255),
+          campaign: priced.campaign ? `${priced.campaign.title} (${priced.campaign.discountCode || "Auto"})` : undefined,
         },
       }),
     });
@@ -75,6 +76,7 @@ export async function POST(req: Request) {
       customer,
       items: priced.lines,
       amount: priced.amountPaise / 100,
+      campaign: priced.campaign,
     });
   } catch (e) {
     console.error("Failed to stash pending order:", e);

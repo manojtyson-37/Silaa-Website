@@ -9,7 +9,7 @@ function inr(n: number) {
 }
 
 export default function CartDrawer() {
-  const { items, open, setOpen, remove, setQty, subtotal } = useCart();
+  const { items, open, setOpen, remove, setQty, subtotal, discountCode, setDiscountCode } = useCart();
 
   return (
     <>
@@ -103,6 +103,23 @@ export default function CartDrawer() {
               ))}
             </div>
             <div className="border-t border-ink/10 px-6 py-5 space-y-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Discount code"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  className="flex-1 border border-ink/20 px-3 py-2 text-sm focus:outline-none focus:border-ink placeholder:text-smoke/50 bg-ivory"
+                />
+                {discountCode && (
+                  <button
+                    onClick={() => setDiscountCode("")}
+                    className="px-3 text-xs text-smoke hover:text-ink cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <div className="flex justify-between text-sm">
                 <span className="uppercase tracking-[0.15em] text-smoke">Subtotal</span>
                 <span className="font-medium text-base">{inr(subtotal)}</span>

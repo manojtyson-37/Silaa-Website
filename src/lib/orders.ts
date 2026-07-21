@@ -1,7 +1,8 @@
 import { promises as fs } from "fs";
 import path from "path";
 import crypto from "crypto";
-import { variantById } from "@/lib/catalog";
+import { variantById, resolveDiscount } from "@/lib/catalog";
+import type { Campaign } from "@/lib/catalog";
 
 export type OrderItem = { variantId: number; qty: number };
 
@@ -22,6 +23,7 @@ export type OrderRecord = {
   amount: number;
   customer: Customer;
   items: { variantId: number; title: string; size: string; price: number; qty: number }[];
+  campaign?: { id: string; title: string; discountCode: string | null; discountValue: number } | null;
   payment?: { razorpayOrderId: string; razorpayPaymentId: string };
 };
 
@@ -48,8 +50,8 @@ export function validateCustomer(c: unknown): Customer | null {
 }
 
 /** Validate items against catalog; returns priced lines + total paise, or null. */
-export async function priceItems(items: unknown):
-  Promise<| { lines: OrderRecord["items"]; amountPaise: number }
+export async function priceItems(items: unknown, discountCode?: string):
+  Promise<| { lines: OrderRecord["items"]; amountPaise: number; campaign: OrderRecord["campaign"] | null }
   | null> {
   if (!Array.isArray(items) || items.length === 0 || items.length > 30) return null;
   const lines: OrderRecord["items"] = [];
@@ -70,8 +72,31 @@ export async function priceItems(items: unknown):
     });
     amountPaise += Math.round(price * 100) * qty;
   }
-  if (amountPaise < 100) return null;
-  return { lines, amountPaise };
+  
+  // Apply discount if any
+  const campaign = await resolveDiscount(discountCode);
+  let campaignRecord: OrderRecord["campaign"] | null = null;
+  
+  if (campaign) {
+    campaignRecord = {
+      id: campaign.id,
+      title: campaign.title,
+      discountCode: campaign.discountCode,
+      discountValue: campaign.discountValue,
+    };
+    
+    if (campaign.discountType === "percentage") {
+      amountPaise = amountPaise - (amountPaise * (campaign.discountValue / 100));
+    } else if (campaign.discountType === "fixed") {
+      amountPaise = amountPaise - (campaign.discountValue * 100);
+    }
+  }
+
+  // Ensure amount doesn't go below zero
+  amountPaise = Math.max(0, amountPaise);
+
+  if (amountPaise < 100 && amountPaise > 0) return null; // Minimum Razorpay amount if not completely free
+  return { lines, amountPaise, campaign: campaignRecord };
 }
 
 const PENDING_DIR = path.join(ORDERS_DIR, "pending");
@@ -84,7 +109,7 @@ function pendingPath(razorpayOrderId: string): string {
 /** Stash cart + customer at order-creation time so /api/verify can finalize. */
 export async function savePending(
   razorpayOrderId: string,
-  data: { customer: Customer; items: OrderRecord["items"]; amount: number }
+  data: { customer: Customer; items: OrderRecord["items"]; amount: number; campaign?: OrderRecord["campaign"] | null }
 ): Promise<void> {
   await fs.mkdir(PENDING_DIR, { recursive: true });
   await fs.writeFile(pendingPath(razorpayOrderId), JSON.stringify(data), "utf8");
@@ -92,7 +117,7 @@ export async function savePending(
 
 export async function takePending(
   razorpayOrderId: string
-): Promise<{ customer: Customer; items: OrderRecord["items"]; amount: number } | null> {
+): Promise<{ customer: Customer; items: OrderRecord["items"]; amount: number; campaign?: OrderRecord["campaign"] | null } | null> {
   try {
     const p = pendingPath(razorpayOrderId);
     const data = JSON.parse(await fs.readFile(p, "utf8"));

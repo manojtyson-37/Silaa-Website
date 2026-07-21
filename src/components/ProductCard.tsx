@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import type { Product } from "@/lib/catalog";
+import { price, compareAt, isNewLaunch } from "@/lib/catalog";
 
 function inr(n: number) {
   return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
@@ -19,10 +20,9 @@ export default function ProductCard({
   const { add } = useCart();
   const img = product.images[0]?.src;
   const hoverImg = product.images[1]?.src;
-  const p = Number(product.variants[0]?.price ?? 0);
-  const cmpRaw = product.variants[0]?.compare_at_price;
-  const cmp = cmpRaw && Number(cmpRaw) > p ? Number(cmpRaw) : null;
-  const isNew = product.tags.some((t) => t.toLowerCase() === "new launch");
+  const p = price(product);
+  const cmp = compareAt(product);
+  const isNew = isNewLaunch(product);
   const availableSizes = product.variants.filter((v) => v.available);
 
   return (

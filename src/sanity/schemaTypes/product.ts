@@ -37,6 +37,12 @@ export default defineType({
       validation: (rule) => rule.required().min(0),
     }),
     defineField({
+      name: 'compareAtPrice',
+      title: 'Compare at Price (₹) / MRP',
+      type: 'number',
+      description: 'Original price (MRP). If higher than the Price, it will be shown slashed out.',
+    }),
+    defineField({
       name: 'description',
       title: 'Description',
       type: 'array',

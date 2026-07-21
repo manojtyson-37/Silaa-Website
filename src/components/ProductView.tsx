@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import type { Product } from "@/lib/catalog";
+import { price, compareAt } from "@/lib/catalog";
 
 function inr(n: number) {
   return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
@@ -18,9 +19,10 @@ export default function ProductView({ product }: { product: Product }) {
   const [error, setError] = useState(false);
 
   const selected = product.variants.find((v) => v.id === variantId);
-  const p = Number(selected?.price ?? product.variants[0]?.price ?? 0);
-  const cmpRaw = selected?.compare_at_price ?? product.variants[0]?.compare_at_price;
-  const cmp = cmpRaw && Number(cmpRaw) > p ? Number(cmpRaw) : null;
+  const p = selected ? Number(selected.price) : price(product);
+  const cmpRaw = selected?.compare_at_price;
+  const rootCmp = compareAt(product);
+  const cmp = cmpRaw ? (Number(cmpRaw) > p ? Number(cmpRaw) : null) : rootCmp;
   const mainImg = product.images[imgIdx]?.src;
 
   function handleAdd() {

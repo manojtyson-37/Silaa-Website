@@ -18,7 +18,7 @@ declare global {
 }
 
 export default function CheckoutPage() {
-  const { items, subtotal, clear } = useCart();
+  const { items, subtotal, clear, discountCode } = useCart();
   const router = useRouter();
   const [method, setMethod] = useState<"prepaid" | "cod">("prepaid");
   const [busy, setBusy] = useState(false);
@@ -52,6 +52,7 @@ export default function CheckoutPage() {
     const payload = {
       items: items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
       customer: form,
+      discountCode,
     };
 
     setBusy(true);

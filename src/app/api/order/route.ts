@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid customer" }, { status: 400 });
   }
 
-  const priced = await priceItems(body.items);
+  const priced = await priceItems(body.items, body.discountCode as string | undefined);
   if (!priced) {
     return NextResponse.json({ error: "Invalid cart" }, { status: 400 });
   }
@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       amount: priced.amountPaise / 100,
       customer,
       items: priced.lines,
+      campaign: priced.campaign,
     });
     return NextResponse.json({ ref });
   } catch (e) {

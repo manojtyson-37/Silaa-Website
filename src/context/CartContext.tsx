@@ -20,7 +20,7 @@ export type CartItem = {
   qty: number;
 };
 
-type State = { items: CartItem[]; open: boolean };
+type State = { items: CartItem[]; open: boolean; discountCode: string };
 
 type Action =
   | { type: "add"; item: CartItem }
@@ -28,7 +28,8 @@ type Action =
   | { type: "qty"; variantId: number; qty: number }
   | { type: "clear" }
   | { type: "setOpen"; open: boolean }
-  | { type: "hydrate"; items: CartItem[] };
+  | { type: "setDiscountCode"; code: string }
+  | { type: "hydrate"; items: CartItem[]; discountCode: string };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -43,7 +44,7 @@ function reducer(state: State, action: Action): State {
               : i
           )
         : [...state.items, action.item];
-      return { items, open: true };
+      return { ...state, items, open: true };
     }
     case "remove":
       return {
@@ -63,8 +64,10 @@ function reducer(state: State, action: Action): State {
       return { ...state, items: [] };
     case "setOpen":
       return { ...state, open: action.open };
+    case "setDiscountCode":
+      return { ...state, discountCode: action.code };
     case "hydrate":
-      return { ...state, items: action.items };
+      return { ...state, items: action.items, discountCode: action.discountCode };
   }
 }
 
@@ -77,13 +80,15 @@ const CartContext = createContext<{
   remove: (variantId: number) => void;
   setQty: (variantId: number, qty: number) => void;
   clear: () => void;
+  discountCode: string;
   setOpen: (open: boolean) => void;
+  setDiscountCode: (code: string) => void;
 } | null>(null);
 
-const STORAGE_KEY = "sila-cart-v1";
+const STORAGE_KEY = "sila-cart-v2";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { items: [], open: false });
+  const [state, dispatch] = useReducer(reducer, { items: [], open: false, discountCode: "" });
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -91,7 +96,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed: unknown = JSON.parse(saved);
-        const items = (Array.isArray(parsed) ? parsed : [])
+        const parsedData = Array.isArray(parsed) ? { items: parsed, discountCode: "" } : (parsed as { items?: unknown, discountCode?: string } || {});
+        const rawItems = Array.isArray(parsedData.items) ? parsedData.items : [];
+        const items = rawItems
           .filter(
             (i): i is CartItem =>
               !!i &&
@@ -106,7 +113,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             price: Number(i.price),
             qty: Math.max(1, Math.min(10, Math.floor(Number(i.qty)) || 1)),
           }));
-        dispatch({ type: "hydrate", items });
+        dispatch({ type: "hydrate", items, discountCode: parsedData.discountCode || "" });
       }
     } catch {}
     setHydrated(true);
@@ -115,9 +122,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ items: state.items, discountCode: state.discountCode }));
     } catch {}
-  }, [state.items, hydrated]);
+  }, [state.items, state.discountCode, hydrated]);
 
   const value = useMemo(() => {
     const count = state.items.reduce((n, i) => n + i.qty, 0);
@@ -133,6 +140,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: "qty", variantId, qty }),
       clear: () => dispatch({ type: "clear" }),
       setOpen: (open: boolean) => dispatch({ type: "setOpen", open }),
+      discountCode: state.discountCode,
+      setDiscountCode: (code: string) => dispatch({ type: "setDiscountCode", code }),
     };
   }, [state]);
 
