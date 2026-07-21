@@ -43,8 +43,8 @@ export default function ProductView({ product }: { product: Product }) {
   return (
     <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
       {/* gallery */}
-      <div>
-        <div className="relative aspect-[3/4] bg-cream overflow-hidden">
+      <div className="min-w-0">
+        <div className="relative w-full aspect-[3/4] bg-cream overflow-hidden">
           {mainImg && (
             <Image
               key={mainImg}
@@ -83,7 +83,7 @@ export default function ProductView({ product }: { product: Product }) {
       </div>
 
       {/* details */}
-      <div className="lg:pt-6">
+      <div className="min-w-0 lg:pt-6">
         <h1 className="font-serif text-4xl sm:text-5xl leading-tight">{product.title}</h1>
         <p className="mt-4 text-2xl">
           {cmp && <span className="line-through text-smoke/50 text-lg mr-3">{inr(cmp)}</span>}
