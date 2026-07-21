@@ -169,6 +169,32 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── INSTAGRAM COLLAB OFFER ───────────────────────── */}
+      <section className="bg-gold text-ivory py-20 sm:py-24">
+        <div className="mx-auto max-w-3xl px-4 sm:px-8 text-center">
+          <Reveal>
+            <p className="uppercase tracking-[0.3em] text-xs text-ivory mb-3">
+              Instagram exclusive
+            </p>
+            <h2 className="font-serif text-3xl sm:text-5xl leading-tight">
+              Shop it. Tag us. <span className="italic">Get 20% off.</span>
+            </h2>
+            <p className="mt-4 text-ivory max-w-xl mx-auto">
+              Wear your SILA pick, tag @silacollective_ or collab with us on
+              Instagram, and get 20% off your next purchase.
+            </p>
+            <a
+              href="https://instagram.com/silacollective_"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-8 inline-flex items-center gap-3 bg-ink text-ivory px-10 py-4 text-xs uppercase tracking-[0.25em] hover:bg-ivory hover:text-ink transition-colors duration-300"
+            >
+              Tag us on Instagram →
+            </a>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── INSTAGRAM FEED ────────────────────────────────── */}
       <InstagramFeed />
     </div>
