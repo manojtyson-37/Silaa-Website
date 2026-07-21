@@ -25,19 +25,7 @@ export default defineType({
       options: {
         source: 'title',
         maxLength: 96,
-        isUnique: async (slug, context) => {
-          const { document, getClient } = context
-          if (!document?._id) return true
-          const client = getClient({ apiVersion: '2024-03-13' })
-          const id = document._id.replace(/^drafts\./, '')
-          const params = {
-            draft: `drafts.${id}`,
-            published: id,
-            slug,
-          }
-          const query = `!defined(*[!(_id in [$draft, $published]) && slug.current == $slug][0]._id)`
-          return client.fetch(query, params)
-        },
+        isUnique: () => true,
       },
       validation: (rule) => rule.required(),
     }),
