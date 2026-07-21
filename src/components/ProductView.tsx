@@ -19,7 +19,8 @@ export default function ProductView({ product }: { product: Product }) {
   const [error, setError] = useState(false);
 
   const selected = product.variants.find((v) => v.id === variantId);
-  const p = selected ? Number(selected.price) : price(product);
+  const variantPrice = selected?.price ? Number(selected.price) : 0;
+  const p = variantPrice > 0 ? variantPrice : price(product);
   const cmpRaw = selected?.compare_at_price;
   const rootCmp = compareAt(product);
   const cmp = cmpRaw ? (Number(cmpRaw) > p ? Number(cmpRaw) : null) : rootCmp;

@@ -85,7 +85,7 @@ export default function ProductCard({
                       handle: product.handle,
                       title: product.title,
                       size: v.title,
-                      price: Number(v.price),
+                      price: (v.price ? Number(v.price) : 0) > 0 ? Number(v.price) : p,
                       image: img ?? "",
                       qty: 1,
                     });
