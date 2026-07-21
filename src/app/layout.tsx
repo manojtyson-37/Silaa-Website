@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     "Curated women's and kids' fashion — dresses, co-ord sets, and mom & girl twinning combos. Quality you can feel, delivered across India with COD.",
 };
 
+export const revalidate = 60;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
