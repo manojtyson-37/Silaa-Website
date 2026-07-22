@@ -37,7 +37,7 @@ export default function ProductView({ product }: { product: Product }) {
       handle: product.handle,
       title: product.title,
       size: selected.title,
-      price: Number(selected.price),
+      price: p,
       image: product.images[0]?.src ?? "",
       qty: 1,
     });

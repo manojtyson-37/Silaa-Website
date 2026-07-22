@@ -62,7 +62,10 @@ export async function priceItems(items: unknown, discountCode?: string):
     if (!Number.isFinite(qty) || qty < 1 || qty > 10) return null;
     const found = await variantById(variantId);
     if (!found || !found.variant.available) return null;
-    const price = Number(found.variant.price);
+    let price = Number(found.variant.price);
+    if (price <= 0) {
+      price = found.product.price || Number(found.product.variants[0]?.price || 0);
+    }
     lines.push({
       variantId,
       title: found.product.title,
