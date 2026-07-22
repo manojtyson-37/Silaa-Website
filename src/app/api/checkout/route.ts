@@ -59,14 +59,15 @@ export async function POST(req: Request) {
         },
       }),
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("Razorpay unreachable:", e);
-    return NextResponse.json({ error: "Could not initiate payment" }, { status: 502 });
+    return NextResponse.json({ error: `Could not initiate payment: ${e.message || "Network Error"}` }, { status: 502 });
   }
 
   if (!res.ok) {
-    console.error("Razorpay order creation failed:", res.status, await res.text());
-    return NextResponse.json({ error: "Could not initiate payment" }, { status: 502 });
+    const errText = await res.text();
+    console.error("Razorpay order creation failed:", res.status, errText);
+    return NextResponse.json({ error: `Could not initiate payment: ${errText}` }, { status: 502 });
   }
 
   const order = await res.json();
