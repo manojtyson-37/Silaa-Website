@@ -21,3 +21,10 @@ Never push using `kbdcreditsolutions` or `travelkathegalu` — those accounts do
 - **CMS:** Sanity (project `nmf3ae7w`, dataset `production`)
 - **Hosting:** Vercel (auto-deploys on push to `main`)
 - **Domain:** `silaa-website.vercel.app` / `silacollective.in`
+
+## Deployment Verification
+**ALWAYS** verify deployments after pushing code.
+When pushing code to Vercel (or any other deployment target), you must:
+1. Wait for the deployment to finish building.
+2. Verify that the deployment was successful by checking the live production URL (`https://silaa-website.vercel.app` or `https://silacollective.in`).
+3. Report back to the user only after confirming the live site reflects the changes or that the build succeeded without errors.

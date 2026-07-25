@@ -46,17 +46,63 @@ export default defineType({
     }),
     defineField({
       name: 'oneTimeUse',
-      title: 'One code one use',
-      description: 'If enabled, this code can only be used once globally across the entire store.',
+      title: 'Single-Use Campaign',
+      description: 'If enabled, this code deactivates after one successful order globally.',
       type: 'boolean',
       initialValue: false,
     }),
     defineField({
       name: 'onePerCustomer',
-      title: 'One customer one use',
-      description: 'If enabled, a single customer can only use this code once.',
+      title: 'Limit to One Per Customer',
+      description: 'If enabled, a single customer (by email/phone) can only use this code once.',
       type: 'boolean',
       initialValue: false,
+    }),
+    defineField({
+      name: 'minPurchaseAmount',
+      title: 'Minimum Purchase Amount (₹)',
+      description: 'Optional minimum cart subtotal required to apply this discount.',
+      type: 'number',
+    }),
+    defineField({
+      name: 'maxUses',
+      title: 'Maximum Uses Counter',
+      description: 'Optional limit on how many times this code can be used globally. It will automatically deactivate when reached.',
+      type: 'number',
+    }),
+    defineField({
+      name: 'usageCount',
+      title: 'Current Usage Count',
+      type: 'number',
+      initialValue: 0,
+      readOnly: true,
+      hidden: true,
+    }),
+    defineField({
+      name: 'startDate',
+      title: 'Active Start Date',
+      type: 'datetime',
+      description: 'Optional. When should this campaign start being valid?',
+    }),
+    defineField({
+      name: 'endDate',
+      title: 'Expiry Date',
+      type: 'datetime',
+      description: 'Optional. When should this campaign automatically expire?',
+    }),
+    defineField({
+      name: 'allowedCategories',
+      title: 'Specific Categories Only',
+      description: 'Optional. Select categories this discount applies to. If empty, applies to all items.',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        list: [
+          { title: 'Women', value: 'women' },
+          { title: 'Kids', value: 'kids' },
+          { title: 'Combo', value: 'combo' }
+        ]
+      }
     }),
   ],
   preview: {

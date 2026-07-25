@@ -1,0 +1,296 @@
+from decimal import Decimal
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.core.deps import get_default_warehouse_id
+from app.core.ledger_base import Direction
+from app.db import get_db
+from app.fabric_inventory.models import FabricItem, FabricLot, LandedCostEntry
+from app.fabric_inventory.service import InsufficientStockError, adjust_fabric, fabric_balance, issue_fabric, receive_fabric
+
+router = APIRouter(tags=["fabric_inventory"])
+
+
+class FabricItemIn(BaseModel):
+    name: str
+    composition: Optional[str] = None
+    gsm: Optional[int] = None
+    width: Optional[Decimal] = None
+    consumption_uom: str = "meter"
+    image_url: Optional[str] = None
+
+
+class FabricItemOut(FabricItemIn):
+    id: int
+
+
+class FabricItemUpdate(BaseModel):
+    name: Optional[str] = None
+    composition: Optional[str] = None
+    gsm: Optional[int] = None
+    width: Optional[Decimal] = None
+    consumption_uom: Optional[str] = None
+    image_url: Optional[str] = None
+
+
+class GRNIn(BaseModel):
+    fabric_item_id: int
+    supplier_id: int
+    po_line_id: int
+    received_qty: Decimal
+    purchase_uom: str
+    cost_per_uom: Decimal
+    dye_lot_no: Optional[str] = None
+    created_by: str
+
+class LotUpdate(BaseModel):
+    supplier_id: int
+    cost_per_uom: Decimal
+    dye_lot_no: Optional[str] = None
+
+
+class LotOut(BaseModel):
+    id: int
+    fabric_item_id: int
+    supplier_id: int
+    received_qty: Decimal
+    cost_per_uom: Decimal
+    dye_lot_no: Optional[str] = None
+
+
+class IssueIn(BaseModel):
+    qty: Decimal
+    reference_type: Optional[str] = None
+    reference_id: Optional[int] = None
+    created_by: str
+
+
+class AdjustIn(BaseModel):
+    qty: Decimal
+    direction: str  # "in" or "out"
+    reason_code: str
+    created_by: str
+
+
+class LandedCostIn(BaseModel):
+    expense_type: str
+    amount: Decimal
+
+
+@router.post("/fabric-items", response_model=FabricItemOut)
+def create_fabric_item(payload: FabricItemIn, db: Session = Depends(get_db)):
+    item = FabricItem(**payload.model_dump())
+    db.add(item)
+    db.commit()
+    return item
+
+
+@router.get("/fabric-items", response_model=list[FabricItemOut])
+def list_fabric_items(db: Session = Depends(get_db)):
+    return db.query(FabricItem).all()
+
+
+@router.patch("/fabric-items/{item_id}", response_model=FabricItemOut)
+def update_fabric_item(item_id: int, payload: FabricItemUpdate, db: Session = Depends(get_db)):
+    item = db.get(FabricItem, item_id)
+    if item is None:
+        raise HTTPException(404, "FabricItem not found")
+    for k, v in payload.model_dump(exclude_unset=True).items():
+        setattr(item, k, v)
+    db.commit()
+    return item
+
+
+@router.delete("/fabric-items/{item_id}", status_code=204)
+def delete_fabric_item(item_id: int, db: Session = Depends(get_db)):
+    from app.fabric_inventory.models import FabricLedgerEntry
+    item = db.get(FabricItem, item_id)
+    if item is None:
+        raise HTTPException(404, "FabricItem not found")
+    
+    from app.production.models import CuttingRecord
+    lots = db.query(FabricLot).filter_by(fabric_item_id=item_id).all()
+    for lot in lots:
+        # landed costs cascade from FabricLot; ledger rows are append-only so
+        # need the bulk-delete escape hatch; CuttingRecord has no relationship
+        db.query(CuttingRecord).filter_by(fabric_lot_id=lot.id).delete()
+        db.query(FabricLedgerEntry).filter_by(fabric_lot_id=lot.id).delete()
+        db.delete(lot)
+        
+    db.delete(item)
+    db.commit()
+
+
+@router.get("/fabric-lots", response_model=list[LotOut])
+def list_fabric_lots(db: Session = Depends(get_db)):
+    return db.query(FabricLot).all()
+
+
+class LotWithBalance(LotOut):
+    balance: Decimal
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/fabric-lots-with-balance", response_model=list[LotWithBalance])
+def list_fabric_lots_with_balance(db: Session = Depends(get_db), warehouse_id: int = Depends(get_default_warehouse_id)):
+    lots = db.query(FabricLot).all()
+    return [
+        LotWithBalance.model_validate(
+            {c.key: getattr(l, c.key) for c in FabricLot.__table__.columns} | {"balance": fabric_balance(db, l.id, warehouse_id)}
+        )
+        for l in lots
+    ]
+
+
+@router.post("/fabric-lots", response_model=LotOut)
+def grn(payload: GRNIn, db: Session = Depends(get_db), warehouse_id: int = Depends(get_default_warehouse_id)):
+    item = db.get(FabricItem, payload.fabric_item_id)
+    if item is None:
+        raise HTTPException(404, "FabricItem not found")
+    lot = receive_fabric(
+        db,
+        fabric_item_id=payload.fabric_item_id,
+        supplier_id=payload.supplier_id,
+        po_line_id=payload.po_line_id,
+        received_qty=payload.received_qty,
+        purchase_uom=payload.purchase_uom,
+        consumption_uom=item.consumption_uom,
+        cost_per_uom=payload.cost_per_uom,
+        warehouse_id=warehouse_id,
+        created_by=payload.created_by,
+        dye_lot_no=payload.dye_lot_no,
+    )
+    return lot
+
+
+@router.patch("/fabric-lots/{lot_id}", response_model=LotOut)
+def update_fabric_lot(lot_id: int, payload: LotUpdate, db: Session = Depends(get_db)):
+    lot = db.get(FabricLot, lot_id)
+    if lot is None:
+        raise HTTPException(404, "FabricLot not found")
+    
+    lot.supplier_id = payload.supplier_id
+    lot.cost_per_uom = payload.cost_per_uom
+    lot.dye_lot_no = payload.dye_lot_no
+
+    db.commit()
+    db.refresh(lot)
+    return lot
+
+
+@router.delete("/fabric-lots/{lot_id}", status_code=204)
+def delete_fabric_lot(lot_id: int, db: Session = Depends(get_db), warehouse_id: int = Depends(get_default_warehouse_id)):
+    from app.fabric_inventory.models import FabricLedgerEntry
+    lot = db.get(FabricLot, lot_id)
+    if lot is None:
+        raise HTTPException(404, "FabricLot not found")
+        
+    from app.production.models import CuttingRecord
+    # landed costs cascade from FabricLot; ledger rows are append-only so
+    # need the bulk-delete escape hatch; CuttingRecord has no relationship
+    db.query(CuttingRecord).filter_by(fabric_lot_id=lot_id).delete()
+    db.query(FabricLedgerEntry).filter_by(fabric_lot_id=lot_id).delete()
+
+    db.delete(lot)
+    db.commit()
+
+
+@router.get("/fabric-lots/{lot_id}/balance")
+def get_balance(lot_id: int, db: Session = Depends(get_db), warehouse_id: int = Depends(get_default_warehouse_id)):
+    if db.get(FabricLot, lot_id) is None:
+        raise HTTPException(404, "FabricLot not found")
+    return {"fabric_lot_id": lot_id, "balance": fabric_balance(db, lot_id, warehouse_id)}
+
+
+@router.post("/fabric-lots/{lot_id}/issue")
+def issue(lot_id: int, payload: IssueIn, db: Session = Depends(get_db), warehouse_id: int = Depends(get_default_warehouse_id)):
+    try:
+        entry = issue_fabric(
+            db, fabric_lot_id=lot_id, qty=payload.qty, warehouse_id=warehouse_id,
+            reference_type=payload.reference_type, reference_id=payload.reference_id,
+            created_by=payload.created_by,
+        )
+    except InsufficientStockError as exc:
+        raise HTTPException(409, str(exc))
+    return {"id": entry.id, "quantity": entry.quantity, "direction": entry.direction}
+
+
+@router.post("/fabric-lots/{lot_id}/adjust")
+def adjust(lot_id: int, payload: AdjustIn, db: Session = Depends(get_db), warehouse_id: int = Depends(get_default_warehouse_id)):
+    if payload.direction not in (Direction.IN.value, Direction.OUT.value):
+        raise HTTPException(400, "direction must be 'in' or 'out'")
+    entry = adjust_fabric(
+        db, fabric_lot_id=lot_id, qty=payload.qty, direction=Direction(payload.direction),
+        reason_code=payload.reason_code, warehouse_id=warehouse_id, created_by=payload.created_by,
+    )
+    return {"id": entry.id, "quantity": entry.quantity, "direction": entry.direction}
+
+
+@router.post("/fabric-lots/{lot_id}/landed-costs")
+def add_landed_cost(lot_id: int, payload: LandedCostIn, db: Session = Depends(get_db)):
+    if db.get(FabricLot, lot_id) is None:
+        raise HTTPException(404, "FabricLot not found")
+    entry = LandedCostEntry(fabric_lot_id=lot_id, **payload.model_dump())
+    db.add(entry)
+    db.commit()
+    return {"id": entry.id, "fabric_lot_id": lot_id, "amount": entry.amount}
+
+
+class ReadyStockIn(BaseModel):
+    fabric_item_id: int
+    variant_id: int
+    qty_pieces: Decimal = Field(gt=0)
+    fabric_qty_used: Decimal = Field(gt=0)
+    created_by: str
+
+
+@router.post("/fabric-lots/{lot_id}/log-ready-stock", status_code=201)
+def log_ready_stock(
+    lot_id: int,
+    payload: ReadyStockIn,
+    db: Session = Depends(get_db),
+    warehouse_id: int = Depends(get_default_warehouse_id),
+):
+    from app.fabric_inventory.models import FabricLedgerEntry
+    from app.finished_goods.service import record_movement
+
+    lot = db.query(FabricLot).filter_by(id=lot_id).with_for_update().one_or_none()
+    if lot is None:
+        raise HTTPException(404, "FabricLot not found")
+    if lot.fabric_item_id != payload.fabric_item_id:
+        raise HTTPException(403, "Lot does not belong to the specified fabric item")
+
+    balance = fabric_balance(db, lot_id, warehouse_id)
+    if payload.fabric_qty_used > balance:
+        raise HTTPException(400, f"Insufficient fabric: requested {payload.fabric_qty_used}, available {balance}")
+
+    fabric_entry = FabricLedgerEntry(
+        fabric_lot_id=lot_id,
+        warehouse_id=warehouse_id,
+        quantity=payload.fabric_qty_used,
+        direction=Direction.OUT.value,
+        txn_type="issue",
+        reason_code="ready_stock",
+        created_by=payload.created_by,
+    )
+    db.add(fabric_entry)
+    db.flush()
+
+    fg_entry = record_movement(
+        db,
+        variant_id=payload.variant_id,
+        qty=payload.qty_pieces,
+        direction=Direction.IN,
+        txn_type="stock_audit",
+        warehouse_id=warehouse_id,
+        reason_code="ready_stock",
+        created_by=payload.created_by,
+        commit=False,
+    )
+
+    db.commit()
+    return {"fabric_entry_id": fabric_entry.id, "fg_entry_id": fg_entry.id}

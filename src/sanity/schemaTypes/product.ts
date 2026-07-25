@@ -110,6 +110,7 @@ export default defineType({
           type: 'object',
           fields: [
             { name: 'id', type: 'number', title: 'Variant ID', hidden: true, initialValue: () => Math.floor(Math.random() * 1000000000) },
+            { name: 'erpVariantId', type: 'number', title: 'ERP Variant ID', description: 'The exact ID of this variant in the Silaa ERP system (used to sync orders automatically)' },
             { name: 'title', type: 'string', title: 'Size/Color (e.g. "S", "M", "Red")' },
             { name: 'price', type: 'string', title: 'Price (₹)' },
             { name: 'compare_at_price', type: 'string', title: 'Compare at Price (₹) (Optional)' },

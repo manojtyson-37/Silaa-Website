@@ -2,6 +2,7 @@ import { client } from "@/sanity/lib/client";
 
 export type Variant = {
   id: number;
+  erpVariantId?: number;
   title: string;
   price: string;
   compare_at_price: string | null;
@@ -32,6 +33,12 @@ export type Campaign = {
   isActive: boolean;
   oneTimeUse?: boolean;
   onePerCustomer?: boolean;
+  minPurchaseAmount?: number;
+  maxUses?: number;
+  usageCount?: number;
+  startDate?: string;
+  endDate?: string;
+  allowedCategories?: string[];
 };
 
 export type Category = "women" | "kids" | "combo";
@@ -118,7 +125,8 @@ export async function allProducts(): Promise<Product[]> {
         return {
           ...v,
           id: Math.abs(hash),
-          inventory: typeof v.inventory === 'number' ? v.inventory : undefined
+          inventory: typeof v.inventory === 'number' ? v.inventory : undefined,
+          erpVariantId: typeof v.erpVariantId === 'number' ? v.erpVariantId : undefined
         };
       });
     }
@@ -208,6 +216,12 @@ export async function activeCampaigns(): Promise<Campaign[]> {
     isActive: !!c.isActive,
     oneTimeUse: !!c.oneTimeUse,
     onePerCustomer: !!c.onePerCustomer,
+    minPurchaseAmount: c.minPurchaseAmount ? Number(c.minPurchaseAmount) : undefined,
+    maxUses: c.maxUses ? Number(c.maxUses) : undefined,
+    usageCount: c.usageCount ? Number(c.usageCount) : 0,
+    startDate: c.startDate,
+    endDate: c.endDate,
+    allowedCategories: c.allowedCategories || [],
   }));
   cachedCampaigns = parsed;
   campaignsCacheTime = now;
@@ -215,7 +229,16 @@ export async function activeCampaigns(): Promise<Campaign[]> {
 }
 
 export async function resolveDiscount(code?: string): Promise<Campaign | null> {
-  const campaigns = await activeCampaigns();
+  const allCampaigns = await activeCampaigns();
+  const now = new Date();
+  
+  const campaigns = allCampaigns.filter((c) => {
+    if (c.startDate && new Date(c.startDate) > now) return false;
+    if (c.endDate && new Date(c.endDate) < now) return false;
+    if (c.maxUses !== undefined && c.usageCount !== undefined && c.usageCount >= c.maxUses) return false;
+    return true;
+  });
+
   if (code) {
     const found = campaigns.find((c) => c.discountCode?.toUpperCase() === code.toUpperCase());
     if (found) return found;

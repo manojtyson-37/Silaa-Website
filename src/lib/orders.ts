@@ -22,7 +22,7 @@ export type OrderRecord = {
   status: "pending" | "paid";
   amount: number;
   customer: Customer;
-  items: { variantId: number; title: string; size: string; price: number; qty: number }[];
+  items: { variantId: number; erpVariantId?: number; title: string; size: string; price: number; qty: number }[];
   campaign?: { id: string; title: string; discountCode: string | null; discountValue: number } | null;
   payment?: { razorpayOrderId: string; razorpayPaymentId: string };
 };
@@ -68,10 +68,13 @@ export async function priceItems(items: unknown, discountCode?: string):
     }
     lines.push({
       variantId,
+      erpVariantId: found.variant.erpVariantId,
       title: found.product.title,
       size: found.variant.title,
       price,
       qty,
+      // @ts-ignore - temporary attachment for category validation
+      _category: found.product.category
     });
     amountPaise += Math.round(price * 100) * qty;
   }
@@ -81,19 +84,37 @@ export async function priceItems(items: unknown, discountCode?: string):
   let campaignRecord: OrderRecord["campaign"] | null = null;
   
   if (campaign) {
-    campaignRecord = {
-      id: campaign.id,
-      title: campaign.title,
-      discountCode: campaign.discountCode,
-      discountValue: campaign.discountValue,
-    };
-    
-    if (campaign.discountType === "percentage") {
-      amountPaise = amountPaise - (amountPaise * (campaign.discountValue / 100));
-    } else if (campaign.discountType === "fixed") {
-      amountPaise = amountPaise - (campaign.discountValue * 100);
+    let isEligible = true;
+    if (campaign.minPurchaseAmount && (amountPaise / 100) < campaign.minPurchaseAmount) {
+      isEligible = false;
+    }
+    if (isEligible && campaign.allowedCategories && campaign.allowedCategories.length > 0) {
+      // @ts-ignore
+      const hasAllowedCategory = lines.some((line) => campaign.allowedCategories!.includes(line._category || ""));
+      if (!hasAllowedCategory) {
+        isEligible = false;
+      }
+    }
+
+    if (isEligible) {
+      campaignRecord = {
+        id: campaign.id,
+        title: campaign.title,
+        discountCode: campaign.discountCode,
+        discountValue: campaign.discountValue,
+      };
+      
+      if (campaign.discountType === "percentage") {
+        amountPaise = amountPaise - (amountPaise * (campaign.discountValue / 100));
+      } else if (campaign.discountType === "fixed") {
+        amountPaise = amountPaise - (campaign.discountValue * 100);
+      }
     }
   }
+
+  // Clean up the temporary attachment
+  // @ts-ignore
+  lines.forEach(l => delete l._category);
 
   // Ensure amount doesn't go below zero
   amountPaise = Math.max(0, amountPaise);
@@ -131,6 +152,8 @@ export async function takePending(
   }
 }
 
+import { client as sanityClient } from "@/sanity/lib/client";
+
 export async function saveOrder(
   order: Omit<OrderRecord, "ref" | "createdAt">
 ): Promise<string> {
@@ -142,5 +165,91 @@ export async function saveOrder(
   };
   await fs.mkdir(ORDERS_DIR, { recursive: true });
   await fs.appendFile(ORDERS_FILE, JSON.stringify(record) + "\n", "utf8");
+
+  // Handle auto-disabling or usage increments for campaigns
+  if (order.campaign && process.env.SANITY_API_WRITE_TOKEN) {
+    try {
+      // Create a write client
+      const { projectId, dataset, apiVersion } = sanityClient.config();
+      const { createClient } = await import("next-sanity");
+      const writeClient = createClient({
+        projectId,
+        dataset,
+        apiVersion,
+        useCdn: false,
+        token: process.env.SANITY_API_WRITE_TOKEN,
+      });
+
+      const camp = await writeClient.fetch(`*[_type == "campaign" && _id == $id][0]`, { id: order.campaign.id });
+      if (camp) {
+        if (camp.oneTimeUse) {
+          await writeClient.patch(camp._id).set({ isActive: false }).commit();
+        } else if (camp.maxUses) {
+          const currentCount = camp.usageCount || 0;
+          const newCount = currentCount + 1;
+          const patch = writeClient.patch(camp._id).inc({ usageCount: 1 });
+          if (newCount >= camp.maxUses) {
+            patch.set({ isActive: false });
+          }
+          await patch.commit();
+        }
+      }
+    } catch (e) {
+      console.error("Failed to mutate campaign usage in Sanity:", e);
+    }
+  }
+
+  // Auto-Sync order to Silaa ERP (if erpVariantIds are present)
+  try {
+    const ERP_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const ADMIN_USER = process.env.ERP_ADMIN_USERNAME || "admin";
+    const ADMIN_PASS = process.env.ERP_ADMIN_PASSWORD || "admin";
+    
+    // 1. Login to ERP
+    const loginRes = await fetch(`${ERP_URL}/api/erp/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: ADMIN_USER, password: ADMIN_PASS }),
+    });
+    
+    if (loginRes.ok) {
+      const { access_token } = await loginRes.json();
+      
+      // 2. Prepare Payload
+      const orderLines = order.items
+        .filter(item => item.erpVariantId) // Only sync items that have been mapped
+        .map(item => ({
+          variant_id: item.erpVariantId,
+          qty: item.qty,
+          unit_price: item.price,
+          gst_percent: 5 // Default GST
+        }));
+        
+      if (orderLines.length > 0) {
+        const payload = {
+          customer_name: order.customer.name,
+          customer_phone: order.customer.phone,
+          customer_address: order.customer.address,
+          customer_state: order.customer.city || "Website Order",
+          category: "B2C",
+          lines: orderLines,
+          created_by: "Website Integration"
+        };
+
+        // 3. Post to ERP
+        await fetch(`${ERP_URL}/api/erp/sales-orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${access_token}`
+          },
+          body: JSON.stringify(payload),
+        });
+      }
+    }
+  } catch (e) {
+    console.error("Failed to sync order to ERP:", e);
+  }
+
   return ref;
 }
