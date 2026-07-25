@@ -216,12 +216,15 @@ export async function saveOrder(
       const { access_token } = await loginRes.json();
       
       // 2. Prepare Payload
+      const totalOriginalPrice = order.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const discountRatio = totalOriginalPrice > 0 ? order.amount / totalOriginalPrice : 1;
+
       const orderLines = order.items
         .filter(item => item.erpVariantId) // Only sync items that have been mapped
         .map(item => ({
           variant_id: item.erpVariantId,
           qty: item.qty,
-          unit_price: item.price,
+          unit_price: Number((item.price * discountRatio).toFixed(2)),
           gst_percent: 5 // Default GST
         }));
         
