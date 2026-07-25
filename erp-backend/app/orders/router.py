@@ -1,0 +1,381 @@
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.core.deps import get_default_warehouse_id
+from app.db import get_db
+from app.orders.invoice import generate_invoice_pdf
+from app.orders.models import SalesOrder, SalesOrderLine, SalesOrderStatus, SalesOrderResolution
+from app.orders.service import InsufficientStockError, cancel_order, create_sales_order, fulfill_order, return_order, replace_order
+from app.style_variant.models import StyleVariant
+
+router = APIRouter(tags=["orders"])
+
+
+class SalesOrderLineIn(BaseModel):
+    variant_id: int
+    qty: Decimal
+    unit_price: Decimal
+    gst_percent: Decimal = Field(Decimal("5"), ge=0, le=100)
+
+
+class SalesOrderIn(BaseModel):
+    customer_name: str
+    customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
+    customer_state: Optional[str] = None
+    category: Optional[str] = None
+    lines: list[SalesOrderLineIn]
+    created_by: str
+
+
+class SalesOrderResolutionOut(BaseModel):
+    resolution_type: str
+    resolved_at: datetime
+    refund_amount: Optional[Decimal] = None
+    refund_account_details: Optional[str] = None
+    notes: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class SalesOrderOut(BaseModel):
+    id: int
+    customer_name: str
+    customer_phone: Optional[str]
+    customer_address: Optional[str]
+    customer_state: Optional[str]
+    category: Optional[str]
+    invoice_number: Optional[str]
+    status: str
+    created_at: Optional[datetime] = None
+    total_amount: Optional[str] = None
+    has_stock_issue: Optional[bool] = False
+    resolution: Optional[SalesOrderResolutionOut] = None
+
+    model_config = {"from_attributes": True}
+
+
+class SalesOrderUpdate(BaseModel):
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
+    customer_state: Optional[str] = None
+    category: Optional[str] = None
+    lines: Optional[list[SalesOrderLineIn]] = None
+
+
+@router.post("/sales-orders", response_model=SalesOrderOut)
+def create_order(payload: SalesOrderIn, db: Session = Depends(get_db)):
+    order = create_sales_order(
+        db,
+        customer_name=payload.customer_name,
+        customer_phone=payload.customer_phone,
+        customer_address=payload.customer_address,
+        customer_state=payload.customer_state,
+        lines=[l.model_dump() for l in payload.lines],
+        created_by=payload.created_by,
+    )
+    return order
+
+
+@router.get("/sales-orders", response_model=list[SalesOrderOut])
+def list_orders(db: Session = Depends(get_db)):
+    orders = db.query(SalesOrder).order_by(SalesOrder.id.desc()).all()
+    lines = db.query(SalesOrderLine).all()
+    resolutions = db.query(SalesOrderResolution).all()
+    # group lines by order
+    lines_by_order: dict[int, list[SalesOrderLine]] = {}
+    for l in lines:
+        lines_by_order.setdefault(l.sales_order_id, []).append(l)
+
+    res_by_order = {r.sales_order_id: r for r in resolutions}
+
+    variants = db.query(StyleVariant).all()
+    variant_qty_map = {v.id: v.qty for v in variants}
+
+    result = []
+    for order in orders:
+        order_lines = lines_by_order.get(order.id, [])
+        total = sum(
+            l.qty * l.unit_price * (1 + l.gst_percent / 100)
+            for l in order_lines
+        )
+        out = SalesOrderOut.model_validate(order)
+        out.total_amount = f"{total:.2f}" if total else None
+        
+        if order.id in res_by_order:
+            out.resolution = SalesOrderResolutionOut.model_validate(res_by_order[order.id])
+        
+        has_issue = False
+        if order.status == "draft":
+            order_variant_qty = {}
+            for l in order_lines:
+                order_variant_qty[l.variant_id] = order_variant_qty.get(l.variant_id, Decimal("0")) + l.qty
+            for vid, required_qty in order_variant_qty.items():
+                if vid not in variant_qty_map or required_qty > variant_qty_map[vid]:
+                    has_issue = True
+                    break
+        out.has_stock_issue = has_issue
+        
+        result.append(out)
+    return result
+
+
+@router.get("/sales-orders/margins")
+def all_margins(db: Session = Depends(get_db)):
+    """One-shot margin totals for every order — replaces the per-order
+    /margin fan-out that made the Sales Orders page slow (was N HTTP calls,
+    each doing N cost queries against a cross-region DB). Loads all lines and
+    all variant costs in a fixed number of queries, computes in memory.
+
+    Declared before /sales-orders/{order_id} so 'margins' isn't parsed as an id."""
+    from app.finished_goods.service import average_unit_costs
+
+    lines = db.query(SalesOrderLine).all()
+    costs = average_unit_costs(db, [l.variant_id for l in lines])
+    totals: dict[int, Decimal] = {}
+    for line in lines:
+        unit_cost = costs.get(line.variant_id, Decimal("0"))
+        totals[line.sales_order_id] = totals.get(line.sales_order_id, Decimal("0")) + (line.unit_price - unit_cost) * line.qty
+    order_ids = [o.id for o in db.query(SalesOrder.id).all()]
+    return [{"order_id": oid, "total_margin": totals.get(oid, Decimal("0"))} for oid in order_ids]
+
+
+@router.get("/sales-orders/{order_id}")
+def get_order(order_id: int, db: Session = Depends(get_db)):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    lines = db.query(SalesOrderLine).filter_by(sales_order_id=order_id).all()
+    total_amount = sum(Decimal(str(l.qty)) * Decimal(str(l.unit_price)) for l in lines)
+    
+    # fetch variant names
+    from app.style_variant.models import StyleVariant
+    variant_details = {}
+    for l in lines:
+        v = db.get(StyleVariant, l.variant_id)
+        if v:
+            variant_details[l.variant_id] = {"color": v.color, "size": v.size, "sku_code": v.sku_code}
+
+    # fetch resolution
+    resolution = db.query(SalesOrderResolution).filter_by(sales_order_id=order_id).first()
+    res_dict = None
+    if resolution:
+        res_dict = {
+            "resolution_type": resolution.resolution_type,
+            "resolved_at": resolution.resolved_at,
+            "refund_amount": resolution.refund_amount,
+            "refund_account_details": resolution.refund_account_details,
+            "notes": resolution.notes,
+        }
+
+    return {
+        "id": order.id,
+        "customer_name": order.customer_name,
+        "customer_phone": order.customer_phone,
+        "customer_address": order.customer_address,
+        "customer_state": order.customer_state,
+        "invoice_number": order.invoice_number,
+        "status": order.status,
+        "category": order.category,
+        "created_at": order.created_at,
+        "total_amount": total_amount,
+        "resolution": res_dict,
+        "lines": [
+            {
+                "id": l.id, 
+                "variant_id": l.variant_id, 
+                "qty": l.qty, 
+                "unit_price": l.unit_price, 
+                "gst_percent": l.gst_percent,
+                "variant_color": variant_details.get(l.variant_id, {}).get("color", ""),
+                "variant_size": variant_details.get(l.variant_id, {}).get("size", ""),
+                "variant_sku": variant_details.get(l.variant_id, {}).get("sku_code", ""),
+            }
+            for l in lines
+        ]
+    }
+
+
+@router.patch("/sales-orders/{order_id}", response_model=SalesOrderOut)
+def update_sales_order(order_id: int, payload: SalesOrderUpdate, db: Session = Depends(get_db)):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    if order.status != SalesOrderStatus.DRAFT.value:
+        raise HTTPException(400, "Can only update SalesOrder in DRAFT status")
+    payload_data = payload.model_dump(exclude_unset=True)
+    
+    if "lines" in payload_data:
+        lines_data = payload_data.pop("lines")
+        if lines_data is not None:
+            # Delete old lines and insert new ones
+            db.query(SalesOrderLine).filter_by(sales_order_id=order_id).delete()
+            for l in lines_data:
+                db.add(SalesOrderLine(
+                    sales_order_id=order_id,
+                    variant_id=l["variant_id"],
+                    qty=l["qty"],
+                    unit_price=l["unit_price"],
+                    gst_percent=l["gst_percent"]
+                ))
+                
+    for k, v in payload_data.items():
+        setattr(order, k, v)
+    db.commit()
+    return order
+
+
+@router.delete("/sales-orders/{order_id}", status_code=204)
+def delete_sales_order(order_id: int, db: Session = Depends(get_db)):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    deletable = {
+        SalesOrderStatus.DRAFT.value,
+        SalesOrderStatus.CANCELLED.value,
+        SalesOrderStatus.FULFILLED.value,
+        SalesOrderStatus.RETURNED.value,
+        SalesOrderStatus.REPLACED.value,
+    }
+    if order.status not in deletable:
+        raise HTTPException(400, f"Cannot delete a SalesOrder in '{order.status}' status")
+    if order.status == SalesOrderStatus.FULFILLED.value:
+        from app.finished_goods.models import FinishedGoodsLedgerEntry
+        from app.style_variant.models import StyleVariant
+        db.query(FinishedGoodsLedgerEntry).filter_by(reference_type="sales_order", reference_id=order_id).delete()
+        # Restore stock since it was fulfilled
+        lines = db.query(SalesOrderLine).filter_by(sales_order_id=order_id).all()
+        for line in lines:
+            variant = db.get(StyleVariant, line.variant_id)
+            if variant:
+                variant.qty += int(line.qty)
+    db.query(SalesOrderLine).filter_by(sales_order_id=order_id).delete()
+    if order.status in {SalesOrderStatus.RETURNED.value, SalesOrderStatus.REPLACED.value}:
+        # Also clean up ledger entries from return/replace
+        from app.finished_goods.models import FinishedGoodsLedgerEntry
+        db.query(FinishedGoodsLedgerEntry).filter_by(reference_type="sales_order", reference_id=order_id).delete()
+    db.delete(order)
+    db.commit()
+
+
+@router.post("/sales-orders/{order_id}/fulfill", response_model=SalesOrderOut)
+def fulfill(
+    order_id: int,
+    created_by: str,
+    db: Session = Depends(get_db),
+    warehouse_id: int = Depends(get_default_warehouse_id),
+):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    try:
+        fulfill_order(db, order=order, warehouse_id=warehouse_id, created_by=created_by)
+    except InsufficientStockError as exc:
+        raise HTTPException(409, str(exc))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return order
+
+
+@router.post("/sales-orders/{order_id}/cancel", response_model=SalesOrderOut)
+def cancel(
+    order_id: int,
+    db: Session = Depends(get_db),
+):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    try:
+        cancel_order(db, order=order)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return order
+
+
+class ReturnOrderIn(BaseModel):
+    refund_amount: Optional[Decimal] = None
+    refund_account_details: Optional[str] = None
+    notes: Optional[str] = None
+
+@router.post("/sales-orders/{order_id}/return", response_model=SalesOrderOut)
+def return_order_endpoint(
+    order_id: int,
+    created_by: str,
+    payload: Optional[ReturnOrderIn] = None,
+    db: Session = Depends(get_db),
+):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    try:
+        kwargs = payload.model_dump() if payload else {}
+        return_order(db, order=order, created_by=created_by, **kwargs)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return order
+
+
+class ReplaceOrderIn(BaseModel):
+    notes: Optional[str] = None
+
+@router.post("/sales-orders/{order_id}/replace", response_model=SalesOrderOut)
+def replace_order_endpoint(
+    order_id: int,
+    created_by: str,
+    payload: Optional[ReplaceOrderIn] = None,
+    db: Session = Depends(get_db),
+):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    try:
+        kwargs = payload.model_dump() if payload else {}
+        replace_order(db, order=order, created_by=created_by, **kwargs)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return order
+
+
+@router.get("/sales-orders/{order_id}/invoice.pdf")
+def invoice(order_id: int, db: Session = Depends(get_db)):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    lines = db.query(SalesOrderLine).filter_by(sales_order_id=order_id).all()
+    pdf_bytes = generate_invoice_pdf(order, lines, db)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="invoice-so-{order_id}.pdf"'},
+    )
+
+
+@router.get("/sales-orders/{order_id}/margin")
+def margin(order_id: int, db: Session = Depends(get_db)):
+    from app.finished_goods.service import average_unit_cost
+
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    lines = db.query(SalesOrderLine).filter_by(sales_order_id=order_id).all()
+    line_margins = []
+    total_margin = Decimal("0")
+    for line in lines:
+        unit_cost = average_unit_cost(db, line.variant_id)
+        line_margin = (line.unit_price - unit_cost) * line.qty
+        total_margin += line_margin
+        line_margins.append({
+            "variant_id": line.variant_id,
+            "qty": line.qty,
+            "unit_price": line.unit_price,
+            "unit_cost": unit_cost,
+            "margin": line_margin,
+        })
+    return {"order_id": order_id, "lines": line_margins, "total_margin": total_margin}

@@ -28,3 +28,8 @@ When pushing code to Vercel (or any other deployment target), you must:
 1. Wait for the deployment to finish building.
 2. Verify that the deployment was successful by checking the live production URL (`https://silaa-website.vercel.app` or `https://silacollective.in`).
 3. Report back to the user only after confirming the live site reflects the changes or that the build succeeded without errors.
+
+# Vercel Automation
+When automating Vercel tasks, ALWAYS use the provided CLI token. The token is available in your environment variables as VERCEL_TOKEN.
+Command format: `npx vercel [command] --token $VERCEL_TOKEN --scope manojsuperb09-7598s-projects`
+
