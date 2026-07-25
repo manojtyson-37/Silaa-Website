@@ -14,7 +14,7 @@ type Post = { id: string; href: string; src: string };
 // Collab/repost tiles (other creators' own photos) are held back until each
 // collaborator's permission to rehost is confirmed — see feedback memory
 // "collab-image-consent" — don't add collab entries here without that.
-const posts = instagramPosts as Post[];
+const posts: Post[] = instagramPosts;
 
 export default function InstagramFeed() {
   return (
