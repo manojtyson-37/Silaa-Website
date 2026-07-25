@@ -235,6 +235,7 @@ export async function saveOrder(
           customer_address: order.customer.address,
           customer_state: order.customer.city || "Website Order",
           category: "B2C",
+          campaign_id: order.campaign?.id || null,
           lines: orderLines,
           created_by: "Website Integration"
         };

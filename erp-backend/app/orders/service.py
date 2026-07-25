@@ -13,6 +13,49 @@ from app.orders.models import SalesOrder, SalesOrderLine, SalesOrderStatus
 class InsufficientStockError(Exception):
     pass
 
+def restore_sanity_campaign(campaign_id: str):
+    import os
+    import httpx
+    
+    project_id = os.environ.get("NEXT_PUBLIC_SANITY_PROJECT_ID")
+    dataset = os.environ.get("NEXT_PUBLIC_SANITY_DATASET", "production")
+    token = os.environ.get("SANITY_API_WRITE_TOKEN")
+
+    if not project_id or not token:
+        print(f"Skipping campaign restoration for {campaign_id}: Sanity credentials not configured.")
+        return
+
+    url = f"https://{project_id}.api.sanity.io/v2023-01-01/data/mutate/{dataset}"
+    payload = {
+        "mutations": [
+            {
+                "patch": {
+                    "id": campaign_id,
+                    "set": {
+                        "isActive": True
+                    },
+                    "dec": {
+                        "usageCount": 1
+                    }
+                }
+            }
+        ]
+    }
+    
+    try:
+        response = httpx.post(
+            url,
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-type": "application/json"
+            }
+        )
+        response.raise_for_status()
+        print(f"Successfully restored campaign {campaign_id} in Sanity.")
+    except Exception as e:
+        print(f"Failed to restore campaign {campaign_id} in Sanity: {e}")
+
 
 def _financial_year_label(d: date) -> str:
     start_year = d.year if d.month >= 4 else d.year - 1
@@ -29,6 +72,7 @@ def create_sales_order(
     customer_address: str | None = None,
     customer_state: str | None = None,
     category: str | None = None,
+    campaign_id: str | None = None,
 ) -> SalesOrder:
     order = SalesOrder(
         customer_name=customer_name,
@@ -36,6 +80,7 @@ def create_sales_order(
         customer_address=customer_address,
         customer_state=customer_state,
         category=category,
+        campaign_id=campaign_id,
         status=SalesOrderStatus.DRAFT.value,
     )
     session.add(order)
@@ -118,6 +163,10 @@ def cancel_order(session: Session, *, order: SalesOrder) -> SalesOrder:
     if order.status != SalesOrderStatus.DRAFT.value:
         raise ValueError(f"Cannot cancel order in status {order.status}")
     order.status = SalesOrderStatus.CANCELLED.value
+    
+    if order.campaign_id:
+        restore_sanity_campaign(order.campaign_id)
+        
     session.commit()
     return order
 

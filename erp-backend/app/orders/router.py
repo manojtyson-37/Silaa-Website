@@ -11,7 +11,7 @@ from app.core.deps import get_default_warehouse_id
 from app.db import get_db
 from app.orders.invoice import generate_invoice_pdf
 from app.orders.models import SalesOrder, SalesOrderLine, SalesOrderStatus, SalesOrderResolution
-from app.orders.service import InsufficientStockError, cancel_order, create_sales_order, fulfill_order, return_order, replace_order
+from app.orders.service import InsufficientStockError, cancel_order, create_sales_order, fulfill_order, return_order, replace_order, restore_sanity_campaign
 from app.style_variant.models import StyleVariant
 
 router = APIRouter(tags=["orders"])
@@ -30,6 +30,7 @@ class SalesOrderIn(BaseModel):
     customer_address: Optional[str] = None
     customer_state: Optional[str] = None
     category: Optional[str] = None
+    campaign_id: Optional[str] = None
     lines: list[SalesOrderLineIn]
     created_by: str
 
@@ -78,6 +79,7 @@ def create_order(payload: SalesOrderIn, db: Session = Depends(get_db)):
         customer_phone=payload.customer_phone,
         customer_address=payload.customer_address,
         customer_state=payload.customer_state,
+        campaign_id=payload.campaign_id,
         lines=[l.model_dump() for l in payload.lines],
         created_by=payload.created_by,
     )
@@ -261,6 +263,10 @@ def delete_sales_order(order_id: int, db: Session = Depends(get_db)):
         # Also clean up ledger entries from return/replace
         from app.finished_goods.models import FinishedGoodsLedgerEntry
         db.query(FinishedGoodsLedgerEntry).filter_by(reference_type="sales_order", reference_id=order_id).delete()
+    
+    if order.campaign_id:
+        restore_sanity_campaign(order.campaign_id)
+        
     db.delete(order)
     db.commit()
 
