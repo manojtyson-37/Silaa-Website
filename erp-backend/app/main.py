@@ -66,7 +66,8 @@ async def lifespan(app: FastAPI):
         db.close()
     yield
 
-app = FastAPI(title="Apparel ERP — Phase 1", version="0.1.0", lifespan=lifespan)
+root_path = "/api/erp" if os.environ.get("VERCEL") == "1" else ""
+app = FastAPI(title="Apparel ERP — Phase 1", version="0.1.0", lifespan=lifespan, root_path=root_path)
 
 _default_origins = "http://localhost:3000,http://localhost:3001"
 _origins = os.environ.get("FRONTEND_ORIGINS", _default_origins).split(",")
