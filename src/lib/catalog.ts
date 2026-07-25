@@ -6,6 +6,7 @@ export type Variant = {
   price: string;
   compare_at_price: string | null;
   available: boolean;
+  inventory?: number;
 };
 
 export type Product = {
@@ -103,6 +104,21 @@ export async function allProducts(): Promise<Product[]> {
         compare_at_price: p.compareAtPrice ? String(p.compareAtPrice) : null,
         available: true,
       }];
+    } else {
+      // Fix duplicate IDs by ensuring uniqueness based on product and variant title
+      variants = variants.map((v: any, i: number) => {
+        const uniqueStr = `${p._id || p.id}-${v.title || i}`;
+        let hash = 0;
+        for (let j = 0; j < uniqueStr.length; j++) {
+          hash = (hash << 5) - hash + uniqueStr.charCodeAt(j);
+          hash |= 0;
+        }
+        return {
+          ...v,
+          id: Math.abs(hash),
+          inventory: typeof v.inventory === 'number' ? v.inventory : undefined
+        };
+      });
     }
 
     return {

@@ -114,6 +114,7 @@ export default defineType({
             { name: 'price', type: 'string', title: 'Price (₹)' },
             { name: 'compare_at_price', type: 'string', title: 'Compare at Price (₹) (Optional)' },
             { name: 'available', type: 'boolean', title: 'In Stock?', initialValue: true },
+            { name: 'inventory', type: 'number', title: 'Inventory Count', description: 'Number of items available (Optional)' },
           ],
           preview: {
             select: {
