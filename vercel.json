@@ -1,1 +1,8 @@
-{"rewrites": [{"source": "/api/erp/(.*)", "destination": "/api/index"}]}
+{
+  "rewrites": [{"source": "/api/erp/(.*)", "destination": "/api/index"}],
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "erp-backend/**"
+    }
+  }
+}
