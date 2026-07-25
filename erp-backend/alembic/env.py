@@ -22,9 +22,17 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 if os.environ.get("DATABASE_URL"):
+    db_url = os.environ["DATABASE_URL"]
+    if db_url.startswith("postgresql+psycopg2://"):
+        db_url = db_url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
+    elif db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
+    elif db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+        
     # configparser's interpolation treats % specially -- escape it (URL-encoded
     # passwords contain %XX sequences) so set_main_option doesn't choke.
-    config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"].replace("%", "%%"))
+    config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 
