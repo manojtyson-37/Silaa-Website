@@ -39,11 +39,35 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
 
 export default function InstagramFeed() {
   const railRef = useRef<HTMLDivElement>(null);
+  const wrapCooldownRef = useRef(false);
 
   const scroll = (direction: "left" | "right") => {
     const el = railRef.current;
     if (!el) return;
     const amount = Math.min(el.clientWidth * 0.8, 720);
+    const maxScrollLeft = el.scrollWidth - el.clientWidth;
+
+    // Loop around at either end instead of stopping dead. The cooldown
+    // stops a fast opposite-direction click from re-triggering a wrap
+    // while the previous wrap's smooth-scroll is still settling.
+    if (!wrapCooldownRef.current) {
+      const triggerWrap = (left: number) => {
+        el.scrollTo({ left, behavior: "smooth" });
+        wrapCooldownRef.current = true;
+        setTimeout(() => {
+          wrapCooldownRef.current = false;
+        }, 500);
+      };
+      if (direction === "right" && el.scrollLeft >= maxScrollLeft - 4) {
+        triggerWrap(0);
+        return;
+      }
+      if (direction === "left" && el.scrollLeft <= 4) {
+        triggerWrap(maxScrollLeft);
+        return;
+      }
+    }
+
     el.scrollBy({ left: direction === "left" ? -amount : amount, behavior: "smooth" });
   };
 
