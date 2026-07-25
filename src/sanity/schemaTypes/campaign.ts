@@ -44,6 +44,20 @@ export default defineType({
       type: 'boolean',
       initialValue: true,
     }),
+    defineField({
+      name: 'oneTimeUse',
+      title: 'One code one use',
+      description: 'If enabled, this code can only be used once globally across the entire store.',
+      type: 'boolean',
+      initialValue: false,
+    }),
+    defineField({
+      name: 'onePerCustomer',
+      title: 'One customer one use',
+      description: 'If enabled, a single customer can only use this code once.',
+      type: 'boolean',
+      initialValue: false,
+    }),
   ],
   preview: {
     select: {

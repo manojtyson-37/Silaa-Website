@@ -30,6 +30,8 @@ export type Campaign = {
   discountType: "percentage" | "fixed";
   discountValue: number;
   isActive: boolean;
+  oneTimeUse?: boolean;
+  onePerCustomer?: boolean;
 };
 
 export type Category = "women" | "kids" | "combo";
@@ -204,6 +206,8 @@ export async function activeCampaigns(): Promise<Campaign[]> {
     discountType: c.discountType,
     discountValue: Number(c.discountValue) || 0,
     isActive: !!c.isActive,
+    oneTimeUse: !!c.oneTimeUse,
+    onePerCustomer: !!c.onePerCustomer,
   }));
   cachedCampaigns = parsed;
   campaignsCacheTime = now;
