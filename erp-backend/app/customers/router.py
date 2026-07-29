@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.db import get_db
 from app.customers.models import Customer, AbandonedCart
 from app.customers.schemas import CustomerOut, CustomerCreate, AbandonedCartOut, AbandonedCartCreate, TrackCartPayload
@@ -9,7 +9,7 @@ public_router = APIRouter(tags=["Customers (Public)"])
 
 @router.get("/customers", response_model=list[CustomerOut])
 def get_customers(db: Session = Depends(get_db)):
-    return db.query(Customer).all()
+    return db.query(Customer).options(joinedload(Customer.abandoned_carts)).all()
 
 @router.post("/customers", response_model=CustomerOut)
 def create_customer(payload: CustomerCreate, db: Session = Depends(get_db)):
