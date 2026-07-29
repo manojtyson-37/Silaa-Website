@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { ArrayOfObjectsInputProps, set, useFormValue, useClient } from 'sanity'
 import { Button, Stack, Card, Text, Grid, Box, TextInput, Flex } from '@sanity/ui'
+import { TrashIcon } from '@sanity/icons'
 
 export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
   const { onChange, value = [] } = props
@@ -74,6 +75,18 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
     onChange(set(newVariants))
   }, [value, onChange])
 
+  const handleDeleteVariant = useCallback((index: number) => {
+    const newVariants = [...value]
+    newVariants.splice(index, 1)
+    onChange(set(newVariants))
+  }, [value, onChange])
+
+  const handleClearAll = useCallback(() => {
+    if (confirm('Are you sure you want to delete all variants?')) {
+      onChange(set([]))
+    }
+  }, [onChange])
+
   return (
     <Stack space={4}>
       <Card padding={3} tone="primary" radius={2} border>
@@ -82,7 +95,10 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
             <Text size={1} weight="semibold" style={{marginBottom: 4}}>Matrix Generator</Text>
             <Text size={1} muted>Automatically generate missing variants from selected Sizes and Colors.</Text>
           </Box>
-          <Button text="Generate Variants Matrix" tone="positive" onClick={handleGenerate} />
+          <Flex gap={2}>
+            {value.length > 0 && <Button text="Clear All" tone="critical" mode="ghost" onClick={handleClearAll} />}
+            <Button text="Generate Variants Matrix" tone="positive" onClick={handleGenerate} />
+          </Flex>
         </Flex>
       </Card>
 
@@ -90,10 +106,11 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
         <Card border radius={2}>
           {/* Table Header */}
           <Card padding={3} borderBottom tone="transparent">
-            <Grid columns={3} gap={3}>
+            <Grid columns={4} gap={3} style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
               <Text size={1} weight="semibold">Variant</Text>
               <Text size={1} weight="semibold">Price (₹)</Text>
               <Text size={1} weight="semibold">Inventory</Text>
+              <Box></Box>
             </Grid>
           </Card>
           {/* Table Body */}
@@ -101,11 +118,12 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
             {(value as any[]).map((variant, index) => {
               const sName = sizeNames[variant.size?._ref] || ''
               const cName = colorNames[variant.color?._ref] || ''
-              const title = [sName, cName].filter(Boolean).join(' / ') || 'Unknown Variant'
+              let title = [sName, cName].filter(Boolean).join(' / ')
+              if (!title) title = 'Unknown Variant'
               
               return (
                 <Card padding={3} borderBottom={index !== value.length - 1} key={variant._key}>
-                  <Grid columns={3} gap={3} style={{ alignItems: 'center' }}>
+                  <Grid columns={4} gap={3} style={{ alignItems: 'center', gridTemplateColumns: '1fr 1fr 1fr auto' }}>
                     <Box>
                       <Text size={2} weight="medium">{title}</Text>
                     </Box>
@@ -122,6 +140,15 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
                         placeholder="0"
                         type="number"
                         onChange={(e) => handleUpdateVariant(index, 'inventory', parseInt(e.currentTarget.value, 10))}
+                      />
+                    </Box>
+                    <Box>
+                      <Button 
+                        icon={TrashIcon} 
+                        mode="ghost" 
+                        tone="critical" 
+                        padding={2}
+                        onClick={() => handleDeleteVariant(index)}
                       />
                     </Box>
                   </Grid>
