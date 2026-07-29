@@ -188,13 +188,21 @@ def delete_style(style_id: int, db: Session = Depends(get_db)):
         
     db.query(StyleVariant).filter_by(style_id=style_id).delete()
     db.query(BOMItem).filter_by(style_id=style_id).delete()
-    db.delete(style)
-    db.commit()
+    try:
+        db.delete(style)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Cannot delete style because it is referenced in inventory or orders.")
 
 @router.delete("/variants/{variant_id}", status_code=204)
 def delete_variant(variant_id: int, db: Session = Depends(get_db)):
     variant = db.get(StyleVariant, variant_id)
     if variant is None:
         raise HTTPException(404, "Variant not found")
-    db.delete(variant)
-    db.commit()
+    try:
+        db.delete(variant)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Cannot delete variant because it is referenced in inventory or orders.")

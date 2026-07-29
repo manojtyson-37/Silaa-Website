@@ -1,4 +1,16 @@
-const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_BASE) return process.env.NEXT_PUBLIC_API_BASE;
+  if (typeof window !== "undefined") {
+    // In production, the client should just use relative path to hit Vercel rewrites
+    return window.location.origin.includes("localhost") ? "http://localhost:8000" : "/api/erp";
+  }
+  if (process.env.NODE_ENV === "production") {
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "silaerpfrontend.vercel.app";
+    return `https://${host}/api/erp`;
+  }
+  return "http://localhost:8000";
+};
+const BASE = getBaseUrl();
 
 async function request<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
