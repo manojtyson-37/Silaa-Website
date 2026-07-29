@@ -186,12 +186,12 @@ export default function ExpenseClient({
   const allTags = Array.from(new Set([
     "Direct Expense", 
     "Indirect Expense", 
-    ...expenses.flatMap(e => e.tags ?? []).map(t => t.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase()))
+    ...(expenses || []).flatMap(e => e.tags ?? []).filter(t => typeof t === "string").map(t => t.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase()))
   ])).filter(Boolean);
 
-  const filteredExpenses = expenses
-    .filter(e => e.expense_date.startsWith(selectedMonth))
-    .filter(e => filterTag === "All" || (e.tags ?? []).some(t => t.trim().toLowerCase() === filterTag.toLowerCase()));
+  const filteredExpenses = (expenses || [])
+    .filter(e => (e.expense_date || "").startsWith(selectedMonth))
+    .filter(e => filterTag === "All" || (e.tags ?? []).some(t => typeof t === "string" && t.trim().toLowerCase() === filterTag.toLowerCase()));
   const monthTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount), 0);
 
   const lastMonthStr = shiftMonth(selectedMonth, -1);
