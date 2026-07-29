@@ -5,7 +5,7 @@ import ExpenseClient from "./ExpenseClient";
 
 export default async function ExpensesPage() {
   const token = await requireAuth();
-  const [categories, expenses, budgets, settings, fabricItems, suppliers] = await Promise.all([
+  const [_categories, _expenses, _budgets, _settings, _fabricItems, _suppliers] = await Promise.all([
     api.get<ExpenseCategory[]>("/expense-categories", token),
     api.get<Expense[]>("/expenses", token),
     api.get<CategoryBudget[]>("/expense-category-budgets", token),
@@ -13,6 +13,12 @@ export default async function ExpensesPage() {
     api.get<FabricItem[]>("/fabric-items", token).catch(() => []),
     api.get<Supplier[]>("/suppliers", token).catch(() => []),
   ]);
+  const categories = _categories || [];
+  const expenses = _expenses || [];
+  const budgets = _budgets || [];
+  const settings = _settings || [];
+  const fabricItems = _fabricItems || [];
+  const suppliers = _suppliers || [];
 
   return (
     <main className="max-w-3xl mx-auto px-8 py-10">

@@ -195,8 +195,8 @@ export default function ExpenseClient({
   const monthTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount), 0);
 
   const lastMonthStr = shiftMonth(selectedMonth, -1);
-  const lastMonthTotal = expenses
-    .filter(e => e.expense_date.startsWith(lastMonthStr))
+  const lastMonthTotal = (expenses || [])
+    .filter(e => (e.expense_date || "").startsWith(lastMonthStr))
     .reduce((s, e) => s + Number(e.amount), 0);
   const pctChange = lastMonthTotal === 0
     ? null
