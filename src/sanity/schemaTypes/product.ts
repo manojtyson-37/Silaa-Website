@@ -1,6 +1,7 @@
 import { defineField, defineType } from 'sanity'
 import { VariantMatrixInput } from '../components/VariantMatrixInput'
 import { MultiSelectReferenceInput } from '../components/MultiSelectReferenceInput'
+import { MultiImageUpload } from '../components/MultiImageUpload'
 
 export default defineType({
   name: 'product',
@@ -164,6 +165,9 @@ export default defineType({
       title: 'Product Images',
       type: 'array',
       options: { layout: 'grid' },
+      components: {
+        input: MultiImageUpload,
+      },
       of: [{ type: 'image', options: { hotspot: true } }],
       description: 'Upload high-quality images here. These will be prioritized over legacy images.',
     }),
