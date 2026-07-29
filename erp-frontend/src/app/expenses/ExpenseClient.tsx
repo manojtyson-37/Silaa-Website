@@ -712,7 +712,7 @@ export default function ExpenseClient({
               <Select 
                 value={filterTag} 
                 onChange={e => setFilterTag(e.target.value)}
-                className="w-36 h-7 text-xs py-0"
+                className="w-40 text-sm"
               >
                 <option value="All">All Tags</option>
                 {allTags.map(t => <option key={t} value={t}>{t}</option>)}
