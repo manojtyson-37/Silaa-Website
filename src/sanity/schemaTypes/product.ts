@@ -163,6 +163,7 @@ export default defineType({
       name: 'images',
       title: 'Product Images',
       type: 'array',
+      options: { layout: 'grid' },
       of: [{ type: 'image', options: { hotspot: true } }],
       description: 'Upload high-quality images here. These will be prioritized over legacy images.',
     }),
