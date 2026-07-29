@@ -90,12 +90,10 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
         <Card border radius={2}>
           {/* Table Header */}
           <Card padding={3} borderBottom tone="transparent">
-            <Grid columns={5} gap={3}>
+            <Grid columns={3} gap={3}>
               <Text size={1} weight="semibold">Variant</Text>
               <Text size={1} weight="semibold">Price (₹)</Text>
-              <Text size={1} weight="semibold">Compare (₹)</Text>
               <Text size={1} weight="semibold">Inventory</Text>
-              <Text size={1} weight="semibold">ERP ID</Text>
             </Grid>
           </Card>
           {/* Table Body */}
@@ -107,7 +105,7 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
               
               return (
                 <Card padding={3} borderBottom={index !== value.length - 1} key={variant._key}>
-                  <Grid columns={5} gap={3} style={{ alignItems: 'center' }}>
+                  <Grid columns={3} gap={3} style={{ alignItems: 'center' }}>
                     <Box>
                       <Text size={2} weight="medium">{title}</Text>
                     </Box>
@@ -120,25 +118,10 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
                     </Box>
                     <Box>
                       <TextInput 
-                        value={variant.compare_at_price || ''}
-                        placeholder="Optional"
-                        onChange={(e) => handleUpdateVariant(index, 'compare_at_price', e.currentTarget.value)}
-                      />
-                    </Box>
-                    <Box>
-                      <TextInput 
                         value={variant.inventory?.toString() || ''}
                         placeholder="0"
                         type="number"
                         onChange={(e) => handleUpdateVariant(index, 'inventory', parseInt(e.currentTarget.value, 10))}
-                      />
-                    </Box>
-                    <Box>
-                      <TextInput 
-                        value={variant.erpVariantId?.toString() || ''}
-                        placeholder="Optional"
-                        type="number"
-                        onChange={(e) => handleUpdateVariant(index, 'erpVariantId', parseInt(e.currentTarget.value, 10))}
                       />
                     </Box>
                   </Grid>
