@@ -33,6 +33,12 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: "CRM",
+    items: [
+      { href: "/customers", label: "Customers", icon: Users },
+    ],
+  },
+  {
     title: "Finance",
     items: [
       { href: "/sales-orders", label: "Sales Orders", icon: ScrollText },

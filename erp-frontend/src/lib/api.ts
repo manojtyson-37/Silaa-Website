@@ -279,6 +279,24 @@ export type Expense = {
   is_recurring: boolean;
 };
 
+export type AbandonedCart = {
+  id: number;
+  customer_id: number;
+  items: any;
+  drop_off_time: string;
+  status: string;
+};
+
+export type Customer = {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  created_at: string;
+  abandoned_carts: AbandonedCart[];
+};
+
 export type User = {
   id: number;
   username: string;
