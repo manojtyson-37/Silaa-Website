@@ -38,7 +38,7 @@ export function MultiSelectReferenceInput(props: ArrayOfObjectsInputProps) {
   )
 
   return (
-    <Card padding={3} border radius={2}>
+    <Card padding={4} tone="default" shadow={1} radius={3} border>
       <Grid columns={[2, 3]} gap={3}>
         {options.map((option) => {
           const isSelected = (value as any[]).some((v: any) => v._ref === option._id)

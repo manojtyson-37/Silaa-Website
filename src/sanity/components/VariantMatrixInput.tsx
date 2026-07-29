@@ -91,28 +91,28 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
   }, [onChange])
 
   return (
-    <Stack space={4}>
-      <Card padding={3} tone="primary" radius={2} border>
+    <Stack space={5}>
+      <Card padding={4} tone="default" radius={3} shadow={1} border>
         <Flex justify="space-between" align="center">
           <Box>
-            <Text size={1} weight="semibold" style={{marginBottom: 4}}>Matrix Generator</Text>
-            <Text size={1} muted>Automatically generate missing variants from selected Sizes and Colors.</Text>
+            <Text size={2} weight="semibold" style={{marginBottom: 8}}>Variant Matrix Generator</Text>
+            <Text size={1} muted>Automatically map your selected Sizes and Colors to product variants.</Text>
           </Box>
-          <Flex gap={2}>
+          <Flex gap={3}>
             {value.length > 0 && <Button text="Clear All" tone="critical" mode="ghost" onClick={handleClearAll} />}
-            <Button text="Generate Variants Matrix" tone="positive" onClick={handleGenerate} />
+            <Button text="Sync Matrix" tone="positive" onClick={handleGenerate} />
           </Flex>
         </Flex>
       </Card>
 
       {value.length > 0 && (
-        <Card border radius={2}>
+        <Card shadow={1} radius={3} border style={{ overflow: 'hidden' }}>
           {/* Table Header */}
-          <Card padding={2} borderBottom tone="transparent">
-            <Grid columns={4} gap={3} style={{ gridTemplateColumns: '1fr 1fr 1fr auto', padding: '8px 16px' }}>
-              <Text size={1} weight="semibold" muted>Variant Name</Text>
-              <Text size={1} weight="semibold" muted>Price (₹)</Text>
-              <Text size={1} weight="semibold" muted>Inventory</Text>
+          <Card padding={3} borderBottom tone="transparent">
+            <Grid columns={4} gap={4} style={{ gridTemplateColumns: '1fr 1fr 1fr auto', padding: '0 16px' }}>
+              <Text size={1} weight="semibold" muted>VARIANT</Text>
+              <Text size={1} weight="semibold" muted>PRICE (₹)</Text>
+              <Text size={1} weight="semibold" muted>INVENTORY</Text>
               <Box></Box>
             </Grid>
           </Card>
@@ -125,10 +125,10 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
               if (!title) title = 'Unknown Variant'
               
               return (
-                <Card padding={2} borderBottom={index !== value.length - 1} key={variant._key}>
-                  <Grid columns={4} gap={3} style={{ alignItems: 'center', gridTemplateColumns: '1fr 1fr 1fr auto', padding: '4px 16px' }}>
+                <Card padding={3} borderBottom={index !== value.length - 1} key={variant._key} tone="default">
+                  <Grid columns={4} gap={4} style={{ alignItems: 'center', gridTemplateColumns: '1fr 1fr 1fr auto', padding: '0 16px' }}>
                     <Box>
-                      <Text size={2} weight="medium">{title}</Text>
+                      <Text size={2} weight="semibold">{title}</Text>
                     </Box>
                     <Box>
                       <TextInput 
