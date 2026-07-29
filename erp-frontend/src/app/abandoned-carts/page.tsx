@@ -1,9 +1,11 @@
 import { api } from "@/lib/api";
 import AbandonedCartsClient from "./AbandonedCartsClient";
 import { Customer } from "@/lib/api";
+import { requireAuth } from "@/lib/serverAuth";
 
 export default async function AbandonedCartsPage() {
-  const customers = await api.get<Customer[]>("/customers");
+  const token = await requireAuth();
+  const customers = await api.get<Customer[]>("/customers", token);
   
   // Flatten out all abandoned carts from all customers
   const carts = customers.flatMap((c: any) => 
