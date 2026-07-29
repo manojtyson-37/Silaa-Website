@@ -33,20 +33,23 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
       return
     }
 
-    const newVariants = [...value]
-    
     const sizesToLoop = availableSizes.length > 0 ? availableSizes : [{ _ref: null }]
     const colorsToLoop = availableColors.length > 0 ? availableColors : [{ _ref: null }]
 
+    const validVariants: any[] = []
+    const newVariants = [...value]
+
     sizesToLoop.forEach((sizeRef: any) => {
       colorsToLoop.forEach((colorRef: any) => {
-        const exists = newVariants.some(
+        const existing = newVariants.find(
           (v: any) => 
             (v.size?._ref === sizeRef._ref) && 
             (v.color?._ref === colorRef._ref)
         )
         
-        if (!exists) {
+        if (existing) {
+          validVariants.push(existing)
+        } else {
           const firstPrice = (value as any[]).length > 0 ? (value as any[])[0].price : ""
           const newVariant: any = {
             _type: 'object',
@@ -57,12 +60,12 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
           }
           if (sizeRef._ref) newVariant.size = { _type: 'reference', _ref: sizeRef._ref }
           if (colorRef._ref) newVariant.color = { _type: 'reference', _ref: colorRef._ref }
-          newVariants.push(newVariant)
+          validVariants.push(newVariant)
         }
       })
     })
 
-    onChange(set(newVariants))
+    onChange(set(validVariants))
   }, [availableSizes, availableColors, value, onChange])
 
   const handleUpdateVariant = useCallback((index: number, field: string, newValue: any) => {
@@ -105,11 +108,11 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
       {value.length > 0 && (
         <Card border radius={2}>
           {/* Table Header */}
-          <Card padding={3} borderBottom tone="transparent">
-            <Grid columns={4} gap={3} style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
-              <Text size={1} weight="semibold">Variant</Text>
-              <Text size={1} weight="semibold">Price (₹)</Text>
-              <Text size={1} weight="semibold">Inventory</Text>
+          <Card padding={2} borderBottom tone="transparent">
+            <Grid columns={4} gap={3} style={{ gridTemplateColumns: '1fr 1fr 1fr auto', padding: '8px 16px' }}>
+              <Text size={1} weight="semibold" muted>Variant Name</Text>
+              <Text size={1} weight="semibold" muted>Price (₹)</Text>
+              <Text size={1} weight="semibold" muted>Inventory</Text>
               <Box></Box>
             </Grid>
           </Card>
@@ -122,8 +125,8 @@ export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
               if (!title) title = 'Unknown Variant'
               
               return (
-                <Card padding={3} borderBottom={index !== value.length - 1} key={variant._key}>
-                  <Grid columns={4} gap={3} style={{ alignItems: 'center', gridTemplateColumns: '1fr 1fr 1fr auto' }}>
+                <Card padding={2} borderBottom={index !== value.length - 1} key={variant._key}>
+                  <Grid columns={4} gap={3} style={{ alignItems: 'center', gridTemplateColumns: '1fr 1fr 1fr auto', padding: '4px 16px' }}>
                     <Box>
                       <Text size={2} weight="medium">{title}</Text>
                     </Box>

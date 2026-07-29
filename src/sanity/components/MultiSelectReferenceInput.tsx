@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { ArrayOfObjectsInputProps, set, useClient } from 'sanity'
-import { Card, Checkbox, Flex, Stack, Text, Box } from '@sanity/ui'
+import { Card, Checkbox, Flex, Stack, Text, Box, Grid } from '@sanity/ui'
 
 export function MultiSelectReferenceInput(props: ArrayOfObjectsInputProps) {
   const { value = [], onChange, schemaType } = props
@@ -39,7 +39,7 @@ export function MultiSelectReferenceInput(props: ArrayOfObjectsInputProps) {
 
   return (
     <Card padding={3} border radius={2}>
-      <Stack space={4}>
+      <Grid columns={[2, 3]} gap={3}>
         {options.map((option) => {
           const isSelected = (value as any[]).some((v: any) => v._ref === option._id)
           return (
@@ -58,7 +58,7 @@ export function MultiSelectReferenceInput(props: ArrayOfObjectsInputProps) {
           )
         })}
         {options.length === 0 && <Text muted>No options found. Please create them first.</Text>}
-      </Stack>
+      </Grid>
     </Card>
   )
 }
