@@ -6,6 +6,14 @@ const nextConfig = {
       { protocol: "https", hostname: "cdn.sanity.io" },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api/erp/:path*",
+        destination: "http://127.0.0.1:8000/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

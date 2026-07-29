@@ -5,6 +5,7 @@ from app.customers.models import Customer, AbandonedCart
 from app.customers.schemas import CustomerOut, CustomerCreate, AbandonedCartOut, AbandonedCartCreate, TrackCartPayload
 
 router = APIRouter(tags=["Customers"])
+public_router = APIRouter(tags=["Customers (Public)"])
 
 @router.get("/customers", response_model=list[CustomerOut])
 def get_customers(db: Session = Depends(get_db)):
@@ -24,7 +25,7 @@ def create_customer(payload: CustomerCreate, db: Session = Depends(get_db)):
     db.refresh(customer)
     return customer
 
-@router.post("/customers/track-cart")
+@public_router.post("/customers/track-cart")
 def track_cart(payload: TrackCartPayload, db: Session = Depends(get_db)):
     email = payload.customer.get("email")
     phone = payload.customer.get("phone")

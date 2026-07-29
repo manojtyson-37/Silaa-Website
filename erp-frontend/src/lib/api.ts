@@ -5,7 +5,7 @@ const getBaseUrl = () => {
     return window.location.origin.includes("localhost") ? "http://localhost:8000" : "/api/erp";
   }
   if (process.env.NODE_ENV === "production") {
-    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "silaerpfrontend.vercel.app";
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "silaa-website.vercel.app";
     return `https://${host}/api/erp`;
   }
   return "http://localhost:8000";
