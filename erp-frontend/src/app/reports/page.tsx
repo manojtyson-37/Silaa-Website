@@ -5,12 +5,17 @@ import { requireAuth } from "@/lib/serverAuth";
 
 export default async function ReportsPage() {
   const token = await requireAuth();
-  const [variance, wastage, styles, suppliers] = await Promise.all([
+  const [_variance, _wastage, _styles, _suppliers] = await Promise.all([
     api.get<FabricVarianceRow[]>("/reports/fabric-variance", token),
     api.get<WastageRejectionReport>("/reports/wastage", token),
     api.get<Style[]>("/styles", token),
     api.get<Supplier[]>("/suppliers", token),
   ]);
+  
+  const variance = _variance || [];
+  const wastage = _wastage || { production_defects: [], inventory_spoilage: [], wastage_by_style: [], rejection_by_vendor: [], scrapped_by_style: [] };
+  const styles = _styles || [];
+  const suppliers = _suppliers || [];
 
   const styleMap = new Map(styles.map((s) => [s.id, s.name]));
   const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]));

@@ -6,10 +6,12 @@ import { requireAuth } from "@/lib/serverAuth";
 
 export default async function PurchaseOrdersPage() {
   const token = await requireAuth();
-  const [orders, suppliers] = await Promise.all([
+  const [_orders, _suppliers] = await Promise.all([
     api.get<PurchaseOrder[]>("/purchase-orders", token),
     api.get<Supplier[]>("/suppliers", token),
   ]);
+  const orders = _orders || [];
+  const suppliers = _suppliers || [];
 
   return (
     <main className="max-w-5xl mx-auto px-8 py-10">

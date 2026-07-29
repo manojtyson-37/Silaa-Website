@@ -6,11 +6,14 @@ import { requireAuth } from "@/lib/serverAuth";
 
 export default async function FabricPage() {
   const token = await requireAuth();
-  const [lots, fabricItems, suppliers] = await Promise.all([
+  const [_lots, _fabricItems, _suppliers] = await Promise.all([
     api.get<FabricLotWithBalance[]>("/fabric-lots-with-balance", token),
     api.get<FabricItem[]>("/fabric-items", token),
     api.get<Supplier[]>("/suppliers", token),
   ]);
+  const lots = _lots || [];
+  const fabricItems = _fabricItems || [];
+  const suppliers = _suppliers || [];
 
   return (
     <main className="max-w-5xl mx-auto px-8 py-10">

@@ -6,8 +6,10 @@ import { requireAuth } from "@/lib/serverAuth";
 
 export default async function StylesPage() {
   const token = await requireAuth();
-  const stylesWithVariants = await api.get<StyleWithVariants[]>("/styles-with-variants", token);
-  const fabrics = await api.get<FabricItem[]>("/fabric-items", token);
+  const _stylesWithVariants = await api.get<StyleWithVariants[]>("/styles-with-variants", token);
+  const _fabrics = await api.get<FabricItem[]>("/fabric-items", token);
+  const stylesWithVariants = _stylesWithVariants || [];
+  const fabrics = _fabrics || [];
 
   return (
     <main className="max-w-5xl mx-auto px-8 py-10">
