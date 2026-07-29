@@ -13,7 +13,8 @@ const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "28", "30", "32",
 export default function NewVariantForm({ styleId, fabrics }: { styleId: number; fabrics: FabricItem[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ sku_prefix: "", color: "", sizes: [] as string[], qty: "", fabric_item_id: "", fabric_consumption: "", cost_price: "" });
+  const [form, setForm] = useState({ sku_prefix: "", color: "", sizes: [] as string[], qty: "", fabric_item_id: "", cost_price: "" });
+  const [consumptions, setConsumptions] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -33,19 +34,23 @@ export default function NewVariantForm({ styleId, fabrics }: { styleId: number; 
         color: form.color,
         qty: form.qty ? parseInt(form.qty, 10) : 0,
         fabric_item_id: form.fabric_item_id ? parseInt(form.fabric_item_id, 10) : null,
-        fabric_consumption: form.fabric_consumption ? parseFloat(form.fabric_consumption) : null,
         cost_price: form.cost_price ? parseFloat(form.cost_price) : null,
       };
       
-      const payloads = form.sizes.map(size => ({
-        ...basePayload,
-        sku_code: `${form.sku_prefix}-${size}`,
-        size: size,
-      }));
+      const payloads = form.sizes.map(size => {
+        const consumption = consumptions[size];
+        return {
+          ...basePayload,
+          sku_code: `${form.sku_prefix}-${size}`,
+          size: size,
+          fabric_consumption: consumption ? parseFloat(consumption) : null,
+        };
+      });
       
       await api.post(`/styles/${styleId}/variants/bulk`, payloads, getClientToken());
       
-      setForm({ sku_prefix: "", color: "", sizes: [], qty: "", fabric_item_id: "", fabric_consumption: "", cost_price: "" });
+      setForm({ sku_prefix: "", color: "", sizes: [], qty: "", fabric_item_id: "", cost_price: "" });
+      setConsumptions({});
       setOpen(false);
       router.refresh();
     } catch (e) {
@@ -107,7 +112,7 @@ export default function NewVariantForm({ styleId, fabrics }: { styleId: number; 
             onChange={(e) => setForm({ ...form, cost_price: e.target.value })}
           />
         </div>
-        <div className="flex flex-col gap-1 sm:col-span-2">
+        <div className="flex flex-col gap-1 sm:col-span-4">
           <label className="text-xs text-muted-foreground">Fabric</label>
           <select
             value={form.fabric_item_id}
@@ -119,17 +124,6 @@ export default function NewVariantForm({ styleId, fabrics }: { styleId: number; 
               <option key={f.id} value={f.id}>{f.name}</option>
             ))}
           </select>
-        </div>
-        <div className="flex flex-col gap-1 sm:col-span-2">
-          <label className="text-xs text-muted-foreground">Consumption (m per piece)</label>
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="e.g. 1.5"
-            value={form.fabric_consumption}
-            onChange={(e) => setForm({ ...form, fabric_consumption: e.target.value })}
-          />
         </div>
       </div>
       
@@ -152,10 +146,25 @@ export default function NewVariantForm({ styleId, fabrics }: { styleId: number; 
         </div>
       </div>
       
-      {form.sizes.length > 0 && form.sku_prefix && (
-        <div className="mb-4 p-2 bg-background rounded text-xs text-muted-foreground">
-          <strong>Preview:</strong> Will create {form.sizes.length} variants: 
-          {form.sizes.map(s => ` ${form.sku_prefix}-${s}`).join(", ")}
+      {form.sizes.length > 0 && (
+        <div className="mb-4">
+          <label className="text-xs text-muted-foreground block mb-2">Fabric Consumption (m per piece)</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {form.sizes.map(s => (
+              <div key={s} className="flex flex-col gap-1 bg-background p-2 rounded border border-border">
+                <label className="text-xs font-semibold">Size {s}</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 1.5"
+                  value={consumptions[s] || ""}
+                  onChange={(e) => setConsumptions({ ...consumptions, [s]: e.target.value })}
+                  className="h-8 text-xs"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
