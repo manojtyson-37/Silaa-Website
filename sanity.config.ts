@@ -4,6 +4,7 @@ import { schema } from './src/sanity/schemaTypes'
 import { projectId, dataset } from './src/sanity/env'
 import { myTheme } from './src/sanity/theme'
 import { StudioLogo } from './src/sanity/components/StudioLogo'
+import './src/sanity/studio.css'
 
 export default defineConfig({
   basePath: '/studio',

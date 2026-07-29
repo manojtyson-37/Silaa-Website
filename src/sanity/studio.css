@@ -1,0 +1,24 @@
+/* Make the entire studio feel softer and more modern by rounding all sharp corners */
+
+/* Round all cards and containers */
+[data-ui="Card"] {
+  border-radius: 12px !important;
+}
+
+/* Round all inputs */
+[data-ui="TextInput"],
+[data-ui="TextInput"] input,
+[data-ui="Select"],
+[data-ui="TextArea"] {
+  border-radius: 8px !important;
+}
+
+/* Round all buttons */
+[data-ui="Button"] {
+  border-radius: 8px !important;
+}
+
+/* Make sure the main pane layouts also look softer */
+[data-testid="pane-content"] {
+  border-radius: 12px !important;
+}
