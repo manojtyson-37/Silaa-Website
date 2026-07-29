@@ -57,10 +57,10 @@ export default function CheckoutPage() {
           items: items.map((i) => ({ 
             variantId: i.variantId, 
             qty: i.qty,
-            name: i.title, // 'title' or 'name' depending on useCart model, let's include full obj properties
+            name: i.title, 
             price: i.price,
             size: i.size,
-            color: i.color
+            color: (i as any).color
           })),
         }),
       }).catch(console.error);
