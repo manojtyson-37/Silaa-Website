@@ -1,5 +1,6 @@
 import { defineField, defineType } from 'sanity'
 import { VariantMatrixInput } from '../components/VariantMatrixInput'
+import { MultiSelectReferenceInput } from '../components/MultiSelectReferenceInput'
 
 export default defineType({
   name: 'product',
@@ -120,6 +121,9 @@ export default defineType({
       name: 'availableSizes',
       title: 'Available Sizes (Matrix)',
       type: 'array',
+      components: {
+        input: MultiSelectReferenceInput,
+      },
       of: [{ type: 'reference', to: [{ type: 'size' }] }],
       description: 'Select all sizes to automatically generate variants.',
       fieldset: 'metafields',
@@ -128,6 +132,9 @@ export default defineType({
       name: 'availableColors',
       title: 'Available Colors (Matrix)',
       type: 'array',
+      components: {
+        input: MultiSelectReferenceInput,
+      },
       of: [{ type: 'reference', to: [{ type: 'color' }] }],
       description: 'Select all colors to automatically generate variants.',
       fieldset: 'metafields',
