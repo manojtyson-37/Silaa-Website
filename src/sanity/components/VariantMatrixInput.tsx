@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { ArrayOfObjectsInputProps, set, useFormValue, useClient } from 'sanity'
 import { Button, Stack, Card, Text, Grid, Box, TextInput, Flex } from '@sanity/ui'
-import { TrashIcon } from '@sanity/icons'
+import { TrashIcon } from '@sanity/icons/Trash'
 
 export function VariantMatrixInput(props: ArrayOfObjectsInputProps) {
   const { onChange, value = [] } = props
