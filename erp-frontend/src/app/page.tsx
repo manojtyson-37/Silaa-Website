@@ -81,7 +81,15 @@ const QUICK_LINKS = [
 
 export default async function Home() {
   const token = await requireAuth();
-  const summary = await api.get<DashboardSummary>("/dashboard/summary", token);
+  const _summary = await api.get<DashboardSummary>("/dashboard/summary", token).catch(() => null);
+  const summary = _summary || {
+    open_production_orders: 0,
+    draft_sales_orders: 0,
+    fulfilled_sales_orders: 0,
+    pending_purchase_orders: 0,
+    recent_events: []
+  };
+  const recentEvents = summary.recent_events || [];
 
   const now = new Date();
   const hour = now.getHours();
@@ -134,7 +142,7 @@ export default async function Home() {
             </Link>
           </div>
 
-          {summary.recent_events.length === 0 ? (
+          {recentEvents.length === 0 ? (
             <p className="text-sm text-muted-foreground px-6 py-8 text-center">No recent activity found.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -147,7 +155,7 @@ export default async function Home() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
-                  {summary.recent_events.map((e, i) => {
+                  {recentEvents.map((e, i) => {
                     const { label, color, shadow } = humanEvent(e.event_type);
                     return (
                       <tr key={i} className="group hover:bg-slate-50 transition-colors duration-200">

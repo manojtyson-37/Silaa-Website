@@ -7,6 +7,7 @@ import { Card, Table, Th, Td, Tr } from "@/components/ui";
 import EditFabricItemForm from "./EditFabricItemForm";
 import GRNForm from "./GRNForm";
 import LogReadyStockForm from "./LogReadyStockForm";
+import LogSamplingForm from "./LogSamplingForm";
 import EditLotRow from "./EditLotRow";
 import { Pencil, Trash2 } from "lucide-react";
 import { getClientToken } from "@/lib/clientAuth";
@@ -192,13 +193,22 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
               <div className="text-sm text-muted-foreground mb-4">No lots available for this fabric.</div>
             )}
             
-            <div className="mt-2">
-              <GRNForm fabricItems={fabricItems} suppliers={suppliers} preSelectedFabricId={item.id} />
-              <LogReadyStockForm
-                fabricItemId={item.id}
-                lots={itemLots}
-                onDone={() => setRefreshKey(k => k + 1)}
-              />
+            <div className="mt-2 flex gap-4">
+              <div className="flex flex-col gap-2">
+                <GRNForm fabricItems={fabricItems} suppliers={suppliers} preSelectedFabricId={item.id} />
+              </div>
+              <div className="flex flex-col gap-2">
+                <LogReadyStockForm
+                  fabricItemId={item.id}
+                  lots={itemLots}
+                  onDone={() => setRefreshKey(k => k + 1)}
+                />
+                <LogSamplingForm
+                  fabricItemId={item.id}
+                  lots={itemLots}
+                  onDone={() => setRefreshKey(k => k + 1)}
+                />
+              </div>
             </div>
           </Card>
         );
