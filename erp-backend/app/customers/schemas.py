@@ -32,3 +32,7 @@ class CustomerOut(CustomerBase):
     abandoned_carts: List[AbandonedCartOut] = []
     
     model_config = {"from_attributes": True}
+
+class TrackCartPayload(BaseModel):
+    customer: dict
+    items: Any

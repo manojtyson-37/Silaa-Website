@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.customers.models import Customer, AbandonedCart
-from app.customers.schemas import CustomerOut, CustomerCreate, AbandonedCartOut, AbandonedCartCreate
+from app.customers.schemas import CustomerOut, CustomerCreate, AbandonedCartOut, AbandonedCartCreate, TrackCartPayload
 
 router = APIRouter(tags=["Customers"])
 
@@ -23,6 +23,40 @@ def create_customer(payload: CustomerCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(customer)
     return customer
+
+@router.post("/customers/track-cart")
+def track_cart(payload: TrackCartPayload, db: Session = Depends(get_db)):
+    email = payload.customer.get("email")
+    phone = payload.customer.get("phone")
+    if not email and not phone:
+        raise HTTPException(400, "Email or phone required")
+    
+    customer = None
+    if email:
+        customer = db.query(Customer).filter(Customer.email == email).first()
+    if not customer and phone:
+        customer = db.query(Customer).filter(Customer.phone == phone).first()
+        
+    if not customer:
+        customer = Customer(
+            name=payload.customer.get("name") or "Guest",
+            email=email,
+            phone=phone,
+            address=payload.customer.get("address")
+        )
+        db.add(customer)
+        db.commit()
+        db.refresh(customer)
+        
+    cart = AbandonedCart(
+        customer_id=customer.id,
+        items=payload.items,
+        status="abandoned"
+    )
+    db.add(cart)
+    db.commit()
+    
+    return {"status": "ok"}
 
 @router.post("/customers/{customer_id}/abandoned-carts", response_model=AbandonedCartOut)
 def add_abandoned_cart(customer_id: int, payload: AbandonedCartCreate, db: Session = Depends(get_db)):

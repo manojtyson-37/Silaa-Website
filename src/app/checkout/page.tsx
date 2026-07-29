@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCart } from "@/context/CartContext";
 
 function inr(n: number) {
@@ -40,6 +40,29 @@ export default function CheckoutPage() {
     /^\d{10}$/.test(form.phone.replace(/\D/g, "").slice(-10)) &&
     form.address.trim().length > 5 &&
     /^\d{6}$/.test(form.pincode);
+
+  // Track abandoned cart after 3 seconds of typing email or phone
+  const trackTimer = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (items.length === 0) return;
+    if (!form.email && !form.phone) return;
+
+    if (trackTimer.current) clearTimeout(trackTimer.current);
+    trackTimer.current = setTimeout(() => {
+      fetch("/api/track-cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: form,
+          items: items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
+        }),
+      }).catch(console.error);
+    }, 3000);
+
+    return () => {
+      if (trackTimer.current) clearTimeout(trackTimer.current);
+    };
+  }, [form.email, form.phone, form.name, items]);
 
   async function placeOrder() {
     setError(null);
