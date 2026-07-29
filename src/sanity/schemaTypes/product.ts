@@ -1,9 +1,13 @@
 import { defineField, defineType } from 'sanity'
+import { VariantMatrixInput } from '../components/VariantMatrixInput'
 
 export default defineType({
   name: 'product',
   title: 'Product',
   type: 'document',
+  fieldsets: [
+    { name: 'metafields', title: 'Category Metafields', options: { collapsible: true, collapsed: false } }
+  ],
   fields: [
     defineField({
       name: 'id',
@@ -75,6 +79,60 @@ export default defineType({
       }
     }),
     defineField({
+      name: 'fabric',
+      title: 'Fabric',
+      type: 'string',
+      fieldset: 'metafields',
+    }),
+    defineField({
+      name: 'clothingFeatures',
+      title: 'Baby/Toddler Clothing Features',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: { layout: 'tags' },
+      fieldset: 'metafields',
+    }),
+    defineField({
+      name: 'neckline',
+      title: 'Neckline',
+      type: 'string',
+      fieldset: 'metafields',
+    }),
+    defineField({
+      name: 'sleeveLength',
+      title: 'Sleeve length type',
+      type: 'string',
+      fieldset: 'metafields',
+    }),
+    defineField({
+      name: 'targetGender',
+      title: 'Target gender',
+      type: 'string',
+      fieldset: 'metafields',
+    }),
+    defineField({
+      name: 'topLength',
+      title: 'Top length type',
+      type: 'string',
+      fieldset: 'metafields',
+    }),
+    defineField({
+      name: 'availableSizes',
+      title: 'Available Sizes (Matrix)',
+      type: 'array',
+      of: [{ type: 'reference', to: [{ type: 'size' }] }],
+      description: 'Select all sizes to automatically generate variants.',
+      fieldset: 'metafields',
+    }),
+    defineField({
+      name: 'availableColors',
+      title: 'Available Colors (Matrix)',
+      type: 'array',
+      of: [{ type: 'reference', to: [{ type: 'color' }] }],
+      description: 'Select all colors to automatically generate variants.',
+      fieldset: 'metafields',
+    }),
+    defineField({
       name: 'isNewLaunch',
       title: 'Is this a New Launch?',
       type: 'boolean',
@@ -105,6 +163,9 @@ export default defineType({
       name: 'variants',
       title: 'Sizes & Colors (Variants)',
       type: 'array',
+      components: {
+        input: VariantMatrixInput,
+      },
       of: [
         {
           type: 'object',
