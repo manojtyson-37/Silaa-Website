@@ -181,15 +181,17 @@ export default function ExpenseClient({
   const catById = Object.fromEntries(categories.map(c => [c.id, c]));
   const budgetByCatId = Object.fromEntries(budgets.map(b => [b.category_id, b]));
 
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
   const allTags = Array.from(new Set([
     "Direct Expense", 
     "Indirect Expense", 
-    ...expenses.flatMap(e => e.tags ?? [])
+    ...expenses.flatMap(e => e.tags ?? []).map(t => t.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase()))
   ])).filter(Boolean);
 
   const filteredExpenses = expenses
     .filter(e => e.expense_date.startsWith(selectedMonth))
-    .filter(e => filterTag === "All" || (e.tags ?? []).includes(filterTag));
+    .filter(e => filterTag === "All" || (e.tags ?? []).some(t => t.trim().toLowerCase() === filterTag.toLowerCase()));
   const monthTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount), 0);
 
   const lastMonthStr = shiftMonth(selectedMonth, -1);
@@ -705,14 +707,17 @@ export default function ExpenseClient({
                 className="text-muted-foreground hover:text-foreground p-0.5"
               ><ChevronRight size={14} /></button>
             </div>
-            <Select 
-              value={filterTag} 
-              onChange={e => setFilterTag(e.target.value)}
-              className="ml-2 w-36 h-7 text-xs py-0"
-            >
-              <option value="All">All Tags</option>
-              {allTags.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
+            <div className="flex items-center ml-4 gap-1">
+              <span className="text-xs text-muted-foreground">Filter:</span>
+              <Select 
+                value={filterTag} 
+                onChange={e => setFilterTag(e.target.value)}
+                className="w-36 h-7 text-xs py-0"
+              >
+                <option value="All">All Tags</option>
+                {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+              </Select>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button
