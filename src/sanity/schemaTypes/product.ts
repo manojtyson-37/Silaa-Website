@@ -1,3 +1,4 @@
+import React from 'react'
 import { defineField, defineType } from 'sanity'
 import { VariantMatrixInput } from '../components/VariantMatrixInput'
 import { MultiSelectReferenceInput } from '../components/MultiSelectReferenceInput'
@@ -216,13 +217,14 @@ export default defineType({
     select: {
       title: 'title',
       price: 'price',
-      media: 'images.0'
+      media: 'images.0',
+      imageUrl: 'imageUrls.0'
     },
-    prepare({ title, price, media }) {
+    prepare({ title, price, media, imageUrl }) {
       return {
         title,
         subtitle: price ? `₹${price}` : 'No price set',
-        media
+        media: media || (imageUrl ? React.createElement('img', { src: String(imageUrl), alt: '', style: { objectFit: 'cover' } }) : undefined)
       }
     },
   },
