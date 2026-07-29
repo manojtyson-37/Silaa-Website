@@ -37,13 +37,13 @@ export default function NewVariantForm({ styleId, fabrics }: { styleId: number; 
         cost_price: form.cost_price ? parseFloat(form.cost_price) : null,
       };
       
-      await Promise.all(form.sizes.map(size => 
-        api.post(`/styles/${styleId}/variants`, {
-          ...basePayload,
-          sku_code: `${form.sku_prefix}-${size}`,
-          size: size,
-        }, getClientToken())
-      ));
+      const payloads = form.sizes.map(size => ({
+        ...basePayload,
+        sku_code: `${form.sku_prefix}-${size}`,
+        size: size,
+      }));
+      
+      await api.post(`/styles/${styleId}/variants/bulk`, payloads, getClientToken());
       
       setForm({ sku_prefix: "", color: "", sizes: [], qty: "", fabric_item_id: "", fabric_consumption: "", cost_price: "" });
       setOpen(false);

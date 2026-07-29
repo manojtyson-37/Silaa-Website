@@ -74,31 +74,40 @@ def list_styles(db: Session = Depends(get_db)):
     return db.query(Style).all()
 
 
-@router.post("/styles/{style_id}/variants", response_model=VariantOut)
-def create_variant(style_id: int, payload: VariantIn, db: Session = Depends(get_db)):
+@router.post("/styles/{style_id}/variants/bulk", response_model=list[VariantOut])
+def create_variants_bulk(style_id: int, payloads: list[VariantIn], db: Session = Depends(get_db)):
     if db.get(Style, style_id) is None:
         raise HTTPException(404, "Style not found")
-    variant = StyleVariant(style_id=style_id, **payload.model_dump())
-    db.add(variant)
+    
+    variants = []
+    from app.finished_goods.models import FinishedGoodsLedgerEntry
+    from app.core.ledger_base import Direction
+    
+    for payload in payloads:
+        variant = StyleVariant(style_id=style_id, **payload.model_dump())
+        db.add(variant)
+        variants.append(variant)
+        
     try:
         db.flush()
-        if variant.qty > 0:
-            from app.finished_goods.models import FinishedGoodsLedgerEntry
-            from app.core.ledger_base import Direction
-            db.add(FinishedGoodsLedgerEntry(
-                variant_id=variant.id,
-                quantity=variant.qty,
-                direction=Direction.IN.value,
-                txn_type="adjustment",
-                warehouse_id=1,
-                reason_code="manual_entry",
-                created_by="web"
-            ))
+        
+        for variant in variants:
+            if variant.qty > 0:
+                db.add(FinishedGoodsLedgerEntry(
+                    variant_id=variant.id,
+                    quantity=variant.qty,
+                    direction=Direction.IN.value,
+                    txn_type="adjustment",
+                    warehouse_id=1,
+                    reason_code="manual_entry",
+                    created_by="web"
+                ))
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(409, f"sku_code {payload.sku_code!r} already exists")
-    return variant
+        raise HTTPException(409, "One or more SKUs already exist")
+        
+    return variants
 
 
 @router.get("/styles/{style_id}/variants", response_model=list[VariantOut])

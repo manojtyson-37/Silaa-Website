@@ -4,12 +4,16 @@ import { Customer } from "@/lib/api";
 import { Card, Table, Th } from "@/components/ui";
 import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
+import AddCustomerForm from "./AddCustomerForm";
 
 export default function CustomersClient({ customers }: { customers: Customer[] }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <AddCustomerForm />
+      </div>
       <Card>
         <div className="overflow-x-auto">
           <Table>
