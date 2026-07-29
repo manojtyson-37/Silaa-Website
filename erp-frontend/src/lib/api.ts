@@ -36,6 +36,24 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
   return res.json();
 }
 
+// Reads that don't need to be instant-fresh: short revalidate window + a tag so
+// mutations can force-bust it via /api/revalidate, instead of no-store on every load.
+async function requestCached<T>(path: string, tag: string, token?: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    next: { revalidate: 30, tags: [tag] },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (res.status === 401) {
+    const { redirect } = await import("next/navigation");
+    redirect("/login");
+  }
+  if (!res.ok) throw new Error(`${res.status} ${path}: ${await res.text()}`);
+  return res.json();
+}
+
 export function decodeToken(token: string) {
   try {
     const [b64] = token.split(".");
@@ -60,6 +78,7 @@ export function getTokenRole(): "admin" | "editor" | "viewer" {
 
 export const api = {
   get: <T>(path: string, token?: string) => request<T>(path, undefined, token),
+  getCached: <T>(path: string, tag: string, token?: string) => requestCached<T>(path, tag, token),
   post: <T>(path: string, body?: unknown, token?: string) =>
     request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }, token),
   patch: <T>(path: string, body?: unknown, token?: string) =>

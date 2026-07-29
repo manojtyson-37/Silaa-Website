@@ -1,4 +1,5 @@
 {
+  "regions": ["hnd1"],
   "rewrites": [{"source": "/api/erp/(.*)", "destination": "/api/index"}],
   "functions": {
     "api/index.py": {

@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "autoPort": true
+    },
+    {
+      "name": "erp-frontend-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd erp-frontend && npm run dev"],
+      "autoPort": true
     }
   ]
 }

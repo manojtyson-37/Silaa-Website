@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/serverAuth";
 
 export default async function AbandonedCartsPage() {
   const token = await requireAuth();
-  const customers = await api.get<Customer[]>("/customers", token);
+  const customers = await api.getCached<Customer[]>("/customers", "customers", token);
   
   // Flatten out all abandoned carts from all customers
   const carts = customers.flatMap((c: any) => 

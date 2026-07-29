@@ -5,7 +5,7 @@ import CustomersClient from "./CustomersClient";
 
 export default async function CustomersPage() {
   const token = await requireAuth();
-  const customers = (await api.get<Customer[]>("/customers", token)) || [];
+  const customers = (await api.getCached<Customer[]>("/customers", "customers", token)) || [];
 
   return (
     <main className="max-w-6xl mx-auto px-8 py-10">

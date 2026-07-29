@@ -22,6 +22,13 @@ export default function AddCustomerForm() {
       await api.post(`/customers`, form, getClientToken());
       setForm({ name: "", email: "", phone: "", address: "" });
       setOpen(false);
+      // Best-effort cache bust: the 30s revalidate window self-heals regardless,
+      // so a failure here must never block the already-successful create above.
+      fetch("/api/revalidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag: "customers" }),
+      }).catch(() => {});
       router.refresh();
     } catch (e) {
       setError(String(e));
