@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Boxes, Factory, LayoutGrid, LogOut, Shirt, ClipboardList, BarChart3, Receipt, Users, ScrollText, Scissors } from "lucide-react";
+import { Boxes, Factory, LayoutGrid, LogOut, Shirt, ClipboardList, BarChart3, Receipt, Users, ScrollText, Scissors, ShoppingCart } from "lucide-react";
 import { clearClientToken } from "@/lib/clientAuth";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutGrid };
@@ -36,6 +36,7 @@ const SECTIONS: NavSection[] = [
     title: "CRM",
     items: [
       { href: "/customers", label: "Customers", icon: Users },
+      { href: "/abandoned-carts", label: "Abandoned Carts", icon: ShoppingCart },
     ],
   },
   {

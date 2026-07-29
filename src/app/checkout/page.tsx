@@ -49,7 +49,7 @@ export default function CheckoutPage() {
 
     if (trackTimer.current) clearTimeout(trackTimer.current);
     trackTimer.current = setTimeout(() => {
-      fetch("/api/track-cart", {
+      fetch("/api/erp/customers/track-cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
