@@ -48,14 +48,33 @@ def track_cart(payload: TrackCartPayload, db: Session = Depends(get_db)):
         db.add(customer)
         db.commit()
         db.refresh(customer)
+    else:
+        # Update customer details if they provided new info
+        if not customer.phone and phone:
+            customer.phone = phone
+        if not customer.address and payload.customer.get("address"):
+            customer.address = payload.customer.get("address")
+        db.commit()
+        db.refresh(customer)
         
-    cart = AbandonedCart(
-        customer_id=customer.id,
-        items=payload.items,
-        status="abandoned"
-    )
-    db.add(cart)
-    db.commit()
+    # Check for existing abandoned cart for this customer
+    existing_cart = db.query(AbandonedCart).filter(
+        AbandonedCart.customer_id == customer.id,
+        AbandonedCart.status == "abandoned"
+    ).first()
+    
+    if existing_cart:
+        existing_cart.items = payload.items
+        # Touch the updated_at timestamp, but since we don't have updated_at, we can just commit
+        db.commit()
+    else:
+        cart = AbandonedCart(
+            customer_id=customer.id,
+            items=payload.items,
+            status="abandoned"
+        )
+        db.add(cart)
+        db.commit()
     
     return {"status": "ok"}
 

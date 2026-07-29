@@ -54,7 +54,14 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer: form,
-          items: items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
+          items: items.map((i) => ({ 
+            variantId: i.variantId, 
+            qty: i.qty,
+            name: i.title, // 'title' or 'name' depending on useCart model, let's include full obj properties
+            price: i.price,
+            size: i.size,
+            color: i.color
+          })),
         }),
       }).catch(console.error);
     }, 3000);
