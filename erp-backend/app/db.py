@@ -11,8 +11,14 @@ elif DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
+# Supabase session limit fix for serverless
+if "pooler.supabase.com" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace(":5432", ":6543")
+
+from sqlalchemy import create_engine, pool
+
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+engine = create_engine(DATABASE_URL, connect_args=connect_args, poolclass=pool.NullPool)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
