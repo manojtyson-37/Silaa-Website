@@ -217,14 +217,17 @@ export default defineType({
     select: {
       title: 'title',
       price: 'price',
-      media: 'images.0',
-      imageUrl: 'imageUrls.0'
+      images: 'images',
+      imageUrls: 'imageUrls'
     },
-    prepare({ title, price, media, imageUrl }) {
+    prepare({ title, price, images, imageUrls }) {
+      const firstImage = (images && images.length > 0) ? images[0] : undefined
+      const firstImageUrl = (imageUrls && imageUrls.length > 0) ? imageUrls[0] : undefined
+      
       return {
-        title,
+        title: title || 'Untitled',
         subtitle: price ? `₹${price}` : 'No price set',
-        media: media || (imageUrl ? React.createElement('img', { src: String(imageUrl), alt: '', style: { objectFit: 'cover' } }) : undefined)
+        media: firstImage || (firstImageUrl ? React.createElement('img', { src: String(firstImageUrl), alt: '', style: { objectFit: 'cover' } }) : undefined)
       }
     },
   },
