@@ -111,7 +111,9 @@ export default defineType({
           fields: [
             { name: 'id', type: 'number', title: 'Variant ID', hidden: true, initialValue: () => Math.floor(Math.random() * 1000000000) },
             { name: 'erpVariantId', type: 'number', title: 'ERP Variant ID', description: 'The exact ID of this variant in the Silaa ERP system (used to sync orders automatically)' },
-            { name: 'title', type: 'string', title: 'Size/Color (e.g. "S", "M", "Red")' },
+            { name: 'title', type: 'string', title: 'Legacy Size/Color', hidden: true },
+            { name: 'size', title: 'Size', type: 'reference', to: [{ type: 'size' }] },
+            { name: 'color', title: 'Color', type: 'reference', to: [{ type: 'color' }] },
             { name: 'price', type: 'string', title: 'Price (₹)' },
             { name: 'compare_at_price', type: 'string', title: 'Compare at Price (₹) (Optional)' },
             { name: 'available', type: 'boolean', title: 'In Stock?', initialValue: true },
@@ -120,12 +122,15 @@ export default defineType({
           preview: {
             select: {
               title: 'title',
+              size: 'size.name',
+              color: 'color.name',
               price: 'price',
               available: 'available'
             },
-            prepare({ title, price, available }) {
+            prepare({ title, size, color, price, available }) {
+              const generatedTitle = [size, color].filter(Boolean).join(' / ')
               return {
-                title: title || 'Unnamed variant',
+                title: title || generatedTitle || 'Unnamed variant',
                 subtitle: `₹${price || 0} - ${available ? 'In Stock' : 'Out of Stock'}`
               }
             }

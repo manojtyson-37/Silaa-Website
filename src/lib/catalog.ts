@@ -94,7 +94,14 @@ export async function allProducts(): Promise<Product[]> {
   if (cachedCatalog && now - catalogCacheTime < CACHE_TTL_MS) {
     return cachedCatalog;
   }
-  const sanityProducts = await client.fetch(`*[_type == "product"]`);
+  const sanityProducts = await client.fetch(`*[_type == "product"]{
+    ...,
+    variants[]{
+      ...,
+      "size": size->name,
+      "color": color->name
+    }
+  }`);
   const catalog = sanityProducts.map((p: any) => {
     // Combine legacy image URLs and new Sanity images
     const legacyImages = (p.imageUrls || []).map((src: string) => ({ src, width: 800, height: 800 }));
@@ -116,7 +123,9 @@ export async function allProducts(): Promise<Product[]> {
     } else {
       // Fix duplicate IDs by ensuring uniqueness based on product and variant title
       variants = variants.map((v: any, i: number) => {
-        const uniqueStr = `${p._id || p.id}-${v.title || i}`;
+        const generatedTitle = [v.size, v.color].filter(Boolean).join(' / ');
+        const resolvedTitle = v.title || generatedTitle || 'Default Title';
+        const uniqueStr = `${p._id || p.id}-${resolvedTitle || i}`;
         let hash = 0;
         for (let j = 0; j < uniqueStr.length; j++) {
           hash = (hash << 5) - hash + uniqueStr.charCodeAt(j);
@@ -125,6 +134,7 @@ export async function allProducts(): Promise<Product[]> {
         return {
           ...v,
           id: Math.abs(hash),
+          title: resolvedTitle,
           inventory: typeof v.inventory === 'number' ? v.inventory : undefined,
           erpVariantId: typeof v.erpVariantId === 'number' ? v.erpVariantId : undefined
         };
