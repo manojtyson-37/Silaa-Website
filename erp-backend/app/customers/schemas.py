@@ -33,6 +33,17 @@ class CustomerOut(CustomerBase):
     
     model_config = {"from_attributes": True}
 
+class BulkUploadResultRow(BaseModel):
+    row_index: int
+    name: str
+    status: str
+    error_reason: Optional[str] = None
+
+class BulkUploadResult(BaseModel):
+    success_count: int
+    error_count: int
+    details: List[BulkUploadResultRow]
+
 class TrackCartPayload(BaseModel):
     customer: dict
     items: Any

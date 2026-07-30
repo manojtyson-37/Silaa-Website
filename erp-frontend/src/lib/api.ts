@@ -79,6 +79,14 @@ export function getTokenRole(): "admin" | "editor" | "viewer" {
 export const api = {
   get: <T>(path: string, token?: string) => request<T>(path, undefined, token),
   getCached: <T>(path: string, tag: string, token?: string) => requestCached<T>(path, tag, token),
+  createCustomer: (data: Omit<Customer, "id" | "created_at" | "abandoned_carts">) => request<Customer>("/customers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  bulkUploadCustomers: (data: Omit<Customer, "id" | "created_at" | "abandoned_carts">[]) => request<any>("/customers/bulk", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
   post: <T>(path: string, body?: unknown, token?: string) =>
     request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }, token),
   patch: <T>(path: string, body?: unknown, token?: string) =>

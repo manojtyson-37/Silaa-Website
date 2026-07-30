@@ -5,6 +5,7 @@ import { Input, Card, Table, Th } from "@/components/ui";
 import { useState, Fragment } from "react";
 import { ShoppingCart, Search } from "lucide-react";
 import AddCustomerForm from "./AddCustomerForm";
+import BulkUploadCustomers from "./BulkUploadCustomers";
 
 export default function CustomersClient({ customers }: { customers: Customer[] }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,7 +31,10 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <AddCustomerForm />
+        <div className="flex items-center gap-2">
+          <BulkUploadCustomers />
+          <AddCustomerForm />
+        </div>
       </div>
       <Card>
         <div className="overflow-x-auto">

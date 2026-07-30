@@ -1,8 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_
 from app.db import get_db
 from app.customers.models import Customer, AbandonedCart
-from app.customers.schemas import CustomerOut, CustomerCreate, AbandonedCartOut, AbandonedCartCreate, TrackCartPayload
+from app.customers.schemas import (
+    CustomerOut, CustomerCreate, AbandonedCartOut, 
+    AbandonedCartCreate, TrackCartPayload, 
+    BulkUploadResult, BulkUploadResultRow
+)
 
 router = APIRouter(tags=["Customers"])
 public_router = APIRouter(tags=["Customers (Public)"])
@@ -24,6 +29,64 @@ def create_customer(payload: CustomerCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(customer)
     return customer
+
+@router.post("/customers/bulk", response_model=BulkUploadResult)
+def bulk_upload_customers(payload: list[CustomerCreate], db: Session = Depends(get_db)):
+    success_count = 0
+    error_count = 0
+    details = []
+
+    for i, row in enumerate(payload):
+        # Validation checks
+        existing_email = None
+        existing_phone = None
+        
+        if row.email:
+            existing_email = db.query(Customer).filter(Customer.email == row.email).first()
+        if row.phone:
+            existing_phone = db.query(Customer).filter(Customer.phone == row.phone).first()
+
+        error_reason = None
+        if existing_email:
+            error_reason = f"email '{row.email}' already exists"
+        elif existing_phone:
+            error_reason = f"phone number '{row.phone}' already exists"
+
+        if error_reason:
+            error_count += 1
+            details.append(BulkUploadResultRow(
+                row_index=i + 1,
+                name=row.name,
+                status="error",
+                error_reason=error_reason
+            ))
+            continue
+
+        try:
+            customer = Customer(**row.model_dump())
+            db.add(customer)
+            db.commit()
+            success_count += 1
+            details.append(BulkUploadResultRow(
+                row_index=i + 1,
+                name=row.name,
+                status="success"
+            ))
+        except Exception as e:
+            db.rollback()
+            error_count += 1
+            details.append(BulkUploadResultRow(
+                row_index=i + 1,
+                name=row.name,
+                status="error",
+                error_reason="Database error: " + str(e)
+            ))
+
+    return BulkUploadResult(
+        success_count=success_count,
+        error_count=error_count,
+        details=details
+    )
 
 @public_router.post("/customers/track-cart")
 def track_cart(payload: TrackCartPayload, db: Session = Depends(get_db)):
