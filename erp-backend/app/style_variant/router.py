@@ -184,19 +184,26 @@ def update_style(style_id: int, payload: StyleUpdate, db: Session = Depends(get_
 
 @router.delete("/styles/{style_id}", status_code=204)
 def delete_style(style_id: int, db: Session = Depends(get_db)):
-    from app.bom.models import BOMItem
+    from app.bom.models import BOM, BOMVersion, BOMItem
     from app.production.models import ProductionOrder
-    
+
     style = db.get(Style, style_id)
     if style is None:
         raise HTTPException(404, "Style not found")
-        
+
     po_count = db.query(ProductionOrder).filter_by(style_id=style_id).count()
     if po_count > 0:
         raise HTTPException(409, "Cannot delete style that has production orders.")
 
     try:
-        db.query(BOMItem).filter_by(style_id=style_id).delete()
+        # BOMItem.bom_version_id → BOMVersion.bom_id → BOM.style_id
+        bom = db.query(BOM).filter_by(style_id=style_id).first()
+        if bom:
+            version_ids = [v.id for v in db.query(BOMVersion).filter_by(bom_id=bom.id).all()]
+            if version_ids:
+                db.query(BOMItem).filter(BOMItem.bom_version_id.in_(version_ids)).delete(synchronize_session=False)
+            db.query(BOMVersion).filter_by(bom_id=bom.id).delete()
+            db.delete(bom)
         db.query(StyleVariant).filter_by(style_id=style_id).delete()
         db.delete(style)
         db.commit()
