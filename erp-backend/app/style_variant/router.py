@@ -194,15 +194,15 @@ def delete_style(style_id: int, db: Session = Depends(get_db)):
     po_count = db.query(ProductionOrder).filter_by(style_id=style_id).count()
     if po_count > 0:
         raise HTTPException(409, "Cannot delete style that has production orders.")
-        
-    db.query(StyleVariant).filter_by(style_id=style_id).delete()
-    db.query(BOMItem).filter_by(style_id=style_id).delete()
+
     try:
+        db.query(BOMItem).filter_by(style_id=style_id).delete()
+        db.query(StyleVariant).filter_by(style_id=style_id).delete()
         db.delete(style)
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(409, "Cannot delete style because it is referenced in inventory or orders.")
+        raise HTTPException(409, "Cannot delete style: one or more variants are referenced in sales orders or inventory. Remove those records first.")
 
 @router.delete("/variants/{variant_id}", status_code=204)
 def delete_variant(variant_id: int, db: Session = Depends(get_db)):
