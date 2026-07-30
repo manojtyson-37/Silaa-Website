@@ -56,7 +56,7 @@ function NavLink({ href, label, icon: Icon, active }: NavItem & { active: boolea
       className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
         active
           ? "bg-emerald-600/20 text-emerald-400 shadow-[inset_3px_0_0_#34d399]"
-          : "text-slate-400 hover:bg-white/8 hover:text-slate-100"
+          : "text-slate-400 hover:bg-white/[0.08] hover:text-slate-100"
       }`}
     >
       <Icon size={15} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
@@ -110,7 +110,7 @@ export default function Sidebar({ role }: { role: string }) {
           router.push("/login");
           router.refresh();
         }}
-        className="mt-auto flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white/8 hover:text-slate-300 cursor-pointer transition-colors duration-150"
+        className="mt-auto flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white/[0.08] hover:text-slate-300 cursor-pointer transition-colors duration-150"
       >
         <LogOut size={15} strokeWidth={2} />
         Log out

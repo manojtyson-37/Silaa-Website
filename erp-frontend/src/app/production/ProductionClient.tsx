@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Plus } from "lucide-react";
@@ -15,7 +16,7 @@ type Props = {
 
 export default function ProductionClient({ orders, styles }: Props) {
   const [isCreating, setIsCreating] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const router = useRouter();
 
   const getStyle = (styleId: number) => styles.find((s) => s.id === styleId);
 
@@ -32,7 +33,7 @@ export default function ProductionClient({ orders, styles }: Props) {
         {orders.map((o) => {
           const style = getStyle(o.style_id);
           return (
-            <Link key={`${o.id}-${refreshKey}`} href={`/production/${o.id}`}>
+            <Link key={o.id} href={`/production/${o.id}`}>
               <Card className="px-5 py-3.5 flex items-center justify-between hover:border-accent hover:shadow-sm transition-all duration-200">
                 <div className="flex items-center gap-4">
                   {style?.image_url ? (
@@ -78,7 +79,7 @@ export default function ProductionClient({ orders, styles }: Props) {
           onClose={() => setIsCreating(false)}
           onCreated={() => {
             setIsCreating(false);
-            setRefreshKey((k) => k + 1);
+            router.refresh();
           }}
         />
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ExternalLink, Trash2 } from "lucide-react";
 import { PurchaseOrder, Supplier, api } from "@/lib/api";
@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default function POClient({ orders, suppliers }: Props) {
-  const [refreshKey, setRefreshKey] = useState(0);
+  const router = useRouter();
   const supplierName = (id: number) => suppliers.find((s) => s.id === id)?.name ?? `#${id}`;
 
   if (orders.length === 0) {
@@ -27,7 +27,7 @@ export default function POClient({ orders, suppliers }: Props) {
   return (
     <div className="flex flex-col gap-3 mt-6">
       {orders.map((po) => (
-        <Card key={`${po.id}-${refreshKey}`} className="px-5 py-4 flex items-center justify-between group hover:border-accent hover:shadow-sm transition-all duration-200">
+        <Card key={po.id} className="px-5 py-4 flex items-center justify-between group hover:border-accent hover:shadow-sm transition-all duration-200">
           <div className="flex items-center gap-5">
             {po.image_url ? (
               <div className="w-14 h-14 relative rounded-md overflow-hidden bg-muted border border-border shrink-0">
@@ -62,7 +62,7 @@ export default function POClient({ orders, suppliers }: Props) {
               {po.status === "draft" && (
                 <>
                   <ApproveButton poId={po.id} />
-                  <EditPOForm po={po} suppliers={suppliers} onSaved={() => setRefreshKey(k => k + 1)} />
+                  <EditPOForm po={po} suppliers={suppliers} onSaved={() => router.refresh()} />
                 </>
               )}
               <button
@@ -74,7 +74,7 @@ export default function POClient({ orders, suppliers }: Props) {
                   if (!confirm(msg)) return;
                   try {
                     await api.delete(`/purchase-orders/${po.id}`, getClientToken());
-                    setRefreshKey(k => k + 1);
+                    router.refresh();
                   } catch (err) {
                     alert(err instanceof Error ? err.message : "Delete failed");
                   }

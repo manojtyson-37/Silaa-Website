@@ -1,11 +1,11 @@
 const getBaseUrl = () => {
   if (typeof window === "undefined") {
     // Server-side: must use an absolute URL — rewrites don't apply to internal fetch calls.
+    // ERP_BACKEND_URL: full prefix including /api/erp, no trailing slash.
     if (process.env.ERP_BACKEND_URL) return process.env.ERP_BACKEND_URL;
-    if (process.env.NODE_ENV === "production") {
-      const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "silaa-website.vercel.app";
-      return `https://${host}/api/erp`;
-    }
+    // Literal FastAPI host as fallback — VERCEL_URL resolves to this Next.js app,
+    // which would cause a double-hop through the rewrite proxy on every RSC fetch.
+    if (process.env.NODE_ENV === "production") return "https://silaa-website.vercel.app/api/erp";
     return "http://localhost:8000";
   }
   // Client-side: use relative path so Next.js rewrites proxy the request server-side,

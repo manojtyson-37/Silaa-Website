@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { fmtQty, fmtCost } from "@/lib/format";
 import { api, FabricItem, FabricLotWithBalance, Supplier } from "@/lib/api";
 import { Card, Table, Th, Td, Tr } from "@/components/ui";
@@ -21,7 +22,7 @@ type Props = {
 export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingLotId, setEditingLotId] = useState<number | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const router = useRouter();
 
   const supplierMap = new Map(suppliers.map(s => [s.id, s.name]));
 
@@ -33,7 +34,7 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
         const isEditing = editingId === item.id;
 
         return (
-          <Card key={`${item.id}-${refreshKey}`} className="p-5">
+          <Card key={item.id} className="p-5">
             <div className="flex gap-4 mb-4">
               <label className="relative group cursor-pointer w-20 h-20 shrink-0 block">
                 <input
@@ -47,7 +48,7 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
                       const { getClientToken } = await import("@/lib/clientAuth");
                       const { url } = await api.upload(file, getClientToken());
                       await api.patch(`/fabric-items/${item.id}`, { image_url: url }, getClientToken());
-                      setRefreshKey(k => k + 1);
+                      router.refresh();
                     } catch (err) {
                       console.error("Upload failed", err);
                       alert(err instanceof Error ? err.message : "Failed to upload image");
@@ -88,7 +89,7 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
                           if (!confirm(msg)) return;
                           try {
                             await api.delete(`/fabric-items/${item.id}`, getClientToken());
-                            setRefreshKey(k => k + 1);
+                            router.refresh();
                           } catch (err) {
                             alert(err instanceof Error ? err.message : "Delete failed");
                           }
@@ -113,7 +114,7 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
                   <div className="mt-2">
                     <EditFabricItemForm
                       item={item}
-                      onSaved={() => { setRefreshKey(k => k + 1); setEditingId(null); }}
+                      onSaved={() => { router.refresh(); setEditingId(null); }}
                       onCancel={() => setEditingId(null)}
                     />
                   </div>
@@ -144,7 +145,7 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
                             suppliers={suppliers}
                             onSaved={() => {
                               setEditingLotId(null);
-                              setRefreshKey((k) => k + 1);
+                              router.refresh();
                             }}
                             onCancel={() => setEditingLotId(null)}
                           />
@@ -171,7 +172,7 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
                                   if (!confirm(`Delete Lot #${lot.id}? This cannot be undone.`)) return;
                                   try {
                                     await api.delete(`/fabric-lots/${lot.id}`, getClientToken());
-                                    setRefreshKey(k => k + 1);
+                                    router.refresh();
                                   } catch (err) {
                                     alert(err instanceof Error ? err.message : "Delete failed");
                                   }
@@ -201,12 +202,12 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
                 <LogReadyStockForm
                   fabricItemId={item.id}
                   lots={itemLots}
-                  onDone={() => setRefreshKey(k => k + 1)}
+                  onDone={() => router.refresh()}
                 />
                 <LogSamplingForm
                   fabricItemId={item.id}
                   lots={itemLots}
-                  onDone={() => setRefreshKey(k => k + 1)}
+                  onDone={() => router.refresh()}
                 />
               </div>
             </div>

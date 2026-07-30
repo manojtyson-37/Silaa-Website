@@ -2,7 +2,12 @@
 
 import { cookies } from "next/headers";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+// ERP_BACKEND_URL: full prefix including /api/erp, no trailing slash.
+const BASE =
+  process.env.ERP_BACKEND_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://silaa-website.vercel.app/api/erp"
+    : "http://localhost:8000");
 
 export async function loginAction(username: string, password: string): Promise<string | null> {
   const res = await fetch(`${BASE}/auth/login`, {

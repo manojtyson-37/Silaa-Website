@@ -36,7 +36,6 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function SOClient({ orders, margins, onEdit }: Props) {
   const router = useRouter();
-  const [refreshKey, setRefreshKey] = useState(0);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   
@@ -49,7 +48,6 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
   }, [orders]);
 
   const handleRefresh = () => {
-    setRefreshKey(k => k + 1);
     router.refresh();
   };
   
@@ -73,7 +71,7 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
       }
       return true;
     });
-  }, [localOrders, search, statusFilter, refreshKey]);
+  }, [localOrders, search, statusFilter]);
 
   return (
     <div>
@@ -113,7 +111,7 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
           </Card>
         ) : (
           filtered.map((order) => (
-            <Card key={`${order.id}-${refreshKey}`} className="px-5 py-4 flex items-center justify-between group hover:border-accent hover:shadow-sm transition-all duration-200">
+            <Card key={order.id} className="px-5 py-4 flex items-center justify-between group hover:border-accent hover:shadow-sm transition-all duration-200">
               <div className="flex items-center gap-5">
                 <div className="w-14 h-14 rounded-md bg-muted border border-border flex items-center justify-center shrink-0">
                   <span className="text-xs text-muted-foreground font-medium">SO</span>
