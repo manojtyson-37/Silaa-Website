@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Style, StyleVariant, FabricItem, api } from "@/lib/api";
 import { getClientToken } from "@/lib/clientAuth";
 import { Card, Table, Th } from "@/components/ui";
@@ -16,12 +16,12 @@ type Props = {
 };
 
 export default function StylesClient({ styles, variantsByStyle, fabrics }: Props) {
-  const [refreshKey, setRefreshKey] = useState(0);
+  const router = useRouter();
 
   return (
     <div className="flex flex-col gap-5">
       {styles.map((style, i) => (
-        <Card key={`${style.id}-${refreshKey}`} className="p-5">
+        <Card key={style.id} className="p-5">
           <div className="flex gap-4 mb-3">
             {style.image_url && (
               <img
@@ -34,14 +34,14 @@ export default function StylesClient({ styles, variantsByStyle, fabrics }: Props
               <div className="flex items-center gap-2 mb-1 justify-between">
                 <div className="flex items-center gap-2">
                   <h2 className="font-medium text-foreground">{style.name}</h2>
-                  <EditStyleForm style={style} onSaved={() => setRefreshKey(k => k + 1)} />
+                  <EditStyleForm style={style} onSaved={() => router.refresh()} />
                 </div>
                 <button
                   onClick={async () => {
                     if (!confirm(`Delete style "${style.name}"? This will permanently delete all of its variants and BOMs. This cannot be undone.`)) return;
                     try {
                       await api.delete(`/styles/${style.id}`, getClientToken());
-                      setRefreshKey(k => k + 1);
+                      router.refresh();
                     } catch (err) {
                       alert(err instanceof Error ? err.message : "Delete failed");
                     }

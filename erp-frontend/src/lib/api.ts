@@ -1,14 +1,16 @@
 const getBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_BASE) return process.env.NEXT_PUBLIC_API_BASE;
-  if (typeof window !== "undefined") {
-    // In production, the client should just use relative path to hit Vercel rewrites
-    return window.location.origin.includes("localhost") ? "http://localhost:8000" : "/api/erp";
+  if (typeof window === "undefined") {
+    // Server-side: must use an absolute URL — rewrites don't apply to internal fetch calls.
+    if (process.env.ERP_BACKEND_URL) return process.env.ERP_BACKEND_URL;
+    if (process.env.NODE_ENV === "production") {
+      const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "silaa-website.vercel.app";
+      return `https://${host}/api/erp`;
+    }
+    return "http://localhost:8000";
   }
-  if (process.env.NODE_ENV === "production") {
-    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "silaa-website.vercel.app";
-    return `https://${host}/api/erp`;
-  }
-  return "http://localhost:8000";
+  // Client-side: use relative path so Next.js rewrites proxy the request server-side,
+  // avoiding any cross-origin CORS preflight for DELETE/PATCH/POST.
+  return window.location.origin.includes("localhost") ? "http://localhost:8000" : "/api/erp";
 };
 const BASE = getBaseUrl();
 

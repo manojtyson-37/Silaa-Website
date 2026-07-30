@@ -35,7 +35,7 @@ const STATS = [
     label: "Open Production",
     sub: "In progress right now",
     icon: Factory,
-    gradient: "from-slate-50 to-white",
+    accent: "border-t-slate-400",
     iconBg: "bg-slate-100",
     iconColor: "text-slate-700",
     href: "/production",
@@ -45,7 +45,7 @@ const STATS = [
     label: "Draft Invoices",
     sub: "Awaiting fulfillment",
     icon: ShoppingCart,
-    gradient: "from-amber-50/50 to-white",
+    accent: "border-t-amber-400",
     iconBg: "bg-amber-100",
     iconColor: "text-amber-700",
     href: "/sales-orders",
@@ -55,7 +55,7 @@ const STATS = [
     label: "Fulfilled Invoices",
     sub: "Successfully completed",
     icon: CheckCircle2,
-    gradient: "from-emerald-50/50 to-white",
+    accent: "border-t-emerald-500",
     iconBg: "bg-emerald-100",
     iconColor: "text-emerald-700",
     href: "/sales-orders",
@@ -65,7 +65,7 @@ const STATS = [
     label: "Pending POs",
     sub: "Draft or approved stock",
     icon: Package,
-    gradient: "from-teal-50/50 to-white",
+    accent: "border-t-teal-400",
     iconBg: "bg-teal-100",
     iconColor: "text-teal-700",
     href: "/purchase-orders",
@@ -101,25 +101,22 @@ export default async function Home() {
   return (
     <main className="max-w-6xl mx-auto px-8 py-10 space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">{greeting}, Admin</h1>
-          <p className="text-sm text-muted-foreground mt-1">{today}</p>
-        </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-1">{today}</p>
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">{greeting}</h1>
+        <div className="mt-3 h-px bg-gradient-to-r from-accent/40 via-accent/10 to-transparent" />
       </div>
 
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        {STATS.map(({ key, label, sub, icon: Icon, gradient, iconBg, iconColor, href }) => (
+        {STATS.map(({ key, label, sub, icon: Icon, accent, iconBg, iconColor, href }) => (
           <Link key={key} href={href} className="group">
-            <Card className={`relative overflow-hidden bg-gradient-to-br ${gradient} p-5 border border-border hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full`}>
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-2.5 rounded-full ${iconBg} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon size={18} className={iconColor} strokeWidth={2} />
-                </div>
+            <Card className={`relative overflow-hidden p-5 border-t-4 ${accent} hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full`}>
+              <div className={`inline-flex p-2.5 rounded-xl ${iconBg} mb-4 shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                <Icon size={18} className={iconColor} strokeWidth={2} />
               </div>
               <div>
-                <div className="text-3xl font-bold tracking-tighter text-foreground mb-1">
+                <div className="text-4xl font-black tracking-tighter text-foreground mb-1 tabular-nums">
                   {summary[key]}
                 </div>
                 <div className="text-sm font-semibold text-foreground/90">{label}</div>
