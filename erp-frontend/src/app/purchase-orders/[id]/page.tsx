@@ -6,9 +6,10 @@ import PODetailClient from "./PODetailClient";
 export default async function PODetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const token = await requireAuth();
-  const [suppliers] = await Promise.all([
+  const [_suppliers] = await Promise.all([
     api.get<Supplier[]>("/suppliers", token).catch(() => null),
   ]);
+  const suppliers = _suppliers ?? [];
 
   let po: PurchaseOrderDetail;
   try {

@@ -1,13 +1,23 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { api, CostBreakdown, ProductionEvent, ProductionOrder } from "@/lib/api";
-import { Card, PageHeader, StatusPill } from "@/components/ui";
+import { Card, StatusPill } from "@/components/ui";
 import { requireAuth } from "@/lib/serverAuth";
+import { notFound } from "next/navigation";
 import ProductionOrderDetail, {
   CuttingRecord,
   StitchingBatch,
   VariantBreakdown,
 } from "./ProductionOrderDetail";
+
+const ZERO_COST: CostBreakdown = {
+  fabric_cost: "0.00",
+  accessory_cost: "0.00",
+  labor_cost: "0.00",
+  total_cost: "0.00",
+  qty_passed: "0",
+  unit_cost: null,
+};
 
 export default async function ProductionOrderPage({
   params,
@@ -26,6 +36,10 @@ export default async function ProductionOrderPage({
     api.get<CostBreakdown>(`/production-orders/${id}/cost-breakdown`, token).catch(() => null),
   ]);
 
+  if (!order) notFound();
+
+  const c = cost ?? ZERO_COST;
+
   return (
     <main className="max-w-3xl mx-auto px-8 py-10">
       <Link
@@ -43,19 +57,19 @@ export default async function ProductionOrderPage({
       </p>
 
       <Card className="p-4 mb-8 grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <CostStat label="Fabric" value={cost.fabric_cost} />
-        <CostStat label="Accessory" value={cost.accessory_cost} />
-        <CostStat label="Labor" value={cost.labor_cost} />
-        <CostStat label="Total" value={cost.total_cost} />
-        <CostStat label="Unit cost" value={cost.unit_cost ?? "—"} />
+        <CostStat label="Fabric" value={c.fabric_cost} />
+        <CostStat label="Accessory" value={c.accessory_cost} />
+        <CostStat label="Labor" value={c.labor_cost} />
+        <CostStat label="Total" value={c.total_cost} />
+        <CostStat label="Unit cost" value={c.unit_cost ?? "—"} />
       </Card>
 
       <ProductionOrderDetail
         order={order}
-        variants={variants}
-        initialCuttingRecords={cuttingRecords}
-        initialBatches={batches}
-        initialEvents={events}
+        variants={variants ?? []}
+        initialCuttingRecords={cuttingRecords ?? []}
+        initialBatches={batches ?? []}
+        initialEvents={events ?? []}
       />
     </main>
   );
