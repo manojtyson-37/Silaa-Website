@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { Button } from "@/components/ui";
 import { UploadCloud, Download, AlertCircle, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -15,7 +16,8 @@ export default function BulkUploadCustomers() {
   const router = useRouter();
 
   const handleDownloadTemplate = () => {
-    const csvContent = "data:text/csv;charset=utf-8," + TEMPLATE_HEADERS.join(",");
+    // Adding an example row so the template isn't empty
+    const csvContent = "data:text/csv;charset=utf-8," + TEMPLATE_HEADERS.join(",") + "\nJohn Doe,9876543210,john@example.com,123 Main St";
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -84,13 +86,14 @@ export default function BulkUploadCustomers() {
 
   return (
     <div className="flex items-center gap-2">
-      <button 
+      <Button 
         onClick={handleDownloadTemplate}
-        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground bg-muted/50 rounded-md hover:bg-muted transition-colors"
+        variant="outline"
+        className="flex items-center gap-2"
       >
         <Download size={16} />
         Template
-      </button>
+      </Button>
 
       <input
         type="file"
@@ -99,14 +102,14 @@ export default function BulkUploadCustomers() {
         ref={fileInputRef}
         onChange={handleFileUpload}
       />
-      <button 
+      <Button 
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading}
-        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-black/90 transition-colors disabled:opacity-50"
+        className="flex items-center gap-2"
       >
         <UploadCloud size={16} />
         {isUploading ? "Uploading..." : "Upload CSV"}
-      </button>
+      </Button>
 
       {uploadResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

@@ -39,7 +39,7 @@ export default function AddCustomerForm() {
 
   if (!open) {
     return (
-      <Button onClick={() => setOpen(true)} className="flex items-center gap-1 mb-4">
+      <Button onClick={() => setOpen(true)} className="flex items-center gap-1">
         <Plus size={16} /> Add Customer
       </Button>
     );
