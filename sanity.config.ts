@@ -2,7 +2,6 @@ import { defineConfig } from 'sanity'
 import { deskTool } from 'sanity/desk'
 import { schema } from './src/sanity/schemaTypes'
 import { projectId, dataset } from './src/sanity/env'
-import { myTheme } from './src/sanity/theme'
 import { StudioLogo } from './src/sanity/components/StudioLogo'
 import './src/sanity/studio.css'
 
@@ -11,7 +10,6 @@ export default defineConfig({
   projectId,
   dataset,
   schema,
-  theme: myTheme,
   studio: {
     components: {
       logo: StudioLogo,
