@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`bg-surface rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow duration-200 ${className}`}>
+    <div className={`bg-surface rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border/60 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all duration-300 ${className}`}>
       {children}
     </div>
   );
@@ -83,7 +83,7 @@ export function StatusPill({ value }: { value: string }) {
 
 export function Table({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-border/60 bg-surface shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
       <table className="w-full text-sm text-left">{children}</table>
     </div>
   );
@@ -91,18 +91,26 @@ export function Table({ children }: { children: ReactNode }) {
 
 export function Th({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <th className={`bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 py-3 border-b border-border ${className}`}>
+    <th className={`bg-muted/30 text-xs font-bold uppercase tracking-widest text-muted-foreground/70 px-6 py-4 border-b border-border/60 ${className}`}>
       {children}
     </th>
   );
 }
 
 export function Tr({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <tr className={`hover:bg-muted/30 transition-colors duration-150 ${className}`}>{children}</tr>;
+  return (
+    <tr className={`border-b border-border/40 hover:bg-muted/30 transition-colors ${className}`}>
+      {children}
+    </tr>
+  );
 }
 
 export function Td({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <td className={`px-4 py-3.5 border-b border-border/50 text-foreground ${className}`}>{children}</td>;
+  return (
+    <td className={`px-6 py-4 text-foreground/80 ${className}`}>
+      {children}
+    </td>
+  );
 }
 
 export function Skeleton({ className = "" }: { className?: string }) {

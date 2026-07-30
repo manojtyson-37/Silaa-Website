@@ -53,13 +53,13 @@ function NavLink({ href, label, icon: Icon, active }: NavItem & { active: boolea
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
+      className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
         active
-          ? "bg-emerald-600/20 text-emerald-400 shadow-[inset_3px_0_0_#34d399]"
-          : "text-slate-400 hover:bg-white/[0.08] hover:text-slate-100"
+          ? "bg-accent/10 text-accent"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
     >
-      <Icon size={15} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
+      <Icon size={16} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
       {label}
     </Link>
   );
@@ -70,51 +70,54 @@ export default function Sidebar({ role }: { role: string }) {
   const router = useRouter();
 
   return (
-    <aside className="w-60 shrink-0 bg-[#0f172a] min-h-screen px-3 py-5 flex flex-col gap-0.5 border-r border-white/5">
+    <aside className="w-64 shrink-0 bg-background min-h-screen px-4 py-6 flex flex-col border-r border-border shadow-sm">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-3 pb-4 mb-2 border-b border-white/10">
-        <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-900/50">
-          <Scissors size={15} className="text-white" strokeWidth={2.25} />
+      <div className="flex items-center gap-3 px-3 pb-8">
+        <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center shrink-0 shadow-sm">
+          <Scissors size={18} className="text-white" strokeWidth={2.25} />
         </div>
         <div className="min-w-0">
-          <p className="font-bold text-white tracking-tight leading-tight">Silaa</p>
-          <p className="text-[11px] text-slate-500 leading-tight font-medium">Garment ERP</p>
+          <p className="font-bold text-foreground tracking-tight text-base leading-tight">Silaa</p>
+          <p className="text-[11px] text-muted-foreground leading-tight font-medium uppercase tracking-wider">Garment ERP</p>
         </div>
       </div>
 
-      {SECTIONS.map((section, si) => (
-        <div key={si} className="flex flex-col gap-0.5">
-          {section.title && (
-            <p className="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-600">
-              {section.title}
+      <div className="flex-1 flex flex-col gap-0.5">
+        {SECTIONS.map((section, si) => (
+          <div key={si} className="flex flex-col gap-0.5">
+            {section.title && (
+              <p className="px-3 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                {section.title}
+              </p>
+            )}
+            {section.items.map((item) => (
+              <NavLink key={item.href} {...item} active={pathname === item.href} />
+            ))}
+          </div>
+        ))}
+
+        {role === "admin" && (
+          <div className="flex flex-col gap-0.5">
+            <p className="px-3 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+              Admin
             </p>
-          )}
-          {section.items.map((item) => (
-            <NavLink key={item.href} {...item} active={pathname === item.href} />
-          ))}
-        </div>
-      ))}
+            <NavLink href="/users" label="Users" icon={Users} active={pathname === "/users"} />
+          </div>
+        )}
+      </div>
 
-      {role === "admin" && (
-        <div className="flex flex-col gap-0.5">
-          <p className="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-600">
-            Admin
-          </p>
-          <NavLink href="/users" label="Users" icon={Users} active={pathname === "/users"} />
-        </div>
-      )}
-
-      <button
-        onClick={() => {
-          clearClientToken();
-          router.push("/login");
-          router.refresh();
-        }}
-        className="mt-auto flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white/[0.08] hover:text-slate-300 cursor-pointer transition-colors duration-150"
-      >
-        <LogOut size={15} strokeWidth={2} />
-        Log out
-      </button>
+      <div className="mt-auto pt-6 border-t border-border/50">
+        <button
+          onClick={() => {
+            clearClientToken();
+            router.push("/login");
+          }}
+          className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+        >
+          <LogOut size={16} strokeWidth={2} className="shrink-0" />
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }

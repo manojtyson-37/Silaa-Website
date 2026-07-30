@@ -20,13 +20,13 @@
   /* Muted elements and borders */
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
-  --color-border: #e2e8f0;
-  --color-ring: #34d399;
+  --color-border: rgba(0, 0, 0, 0.06);
+  --color-ring: #10b981;
 
   /* Semantic colors */
-  --color-success: #059669;
-  --color-warning: #d97706;
-  --color-destructive: #dc2626;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-destructive: #ef4444;
 }
 
 @theme inline {
@@ -57,8 +57,6 @@ html {
 
 body {
   background-color: var(--color-background);
-  background-image: radial-gradient(circle, #cbd5e1 0.75px, transparent 0.75px);
-  background-size: 20px 20px;
   color: var(--color-foreground);
   font-family: var(--font-sans);
 }

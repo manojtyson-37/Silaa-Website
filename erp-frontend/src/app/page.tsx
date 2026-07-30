@@ -5,17 +5,17 @@ import { Card } from "@/components/ui";
 import { requireAuth } from "@/lib/serverAuth";
 
 const EVENT_LABELS: Record<string, { label: string; color: string; shadow: string }> = {
-  order_created:      { label: "Order created",      color: "bg-slate-400", shadow: "shadow-[0_0_8px_rgba(148,163,184,0.6)]" },
-  cutting_recorded:   { label: "Cutting recorded",   color: "bg-blue-500", shadow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]" },
-  stitching_sent:     { label: "Sent to stitching",  color: "bg-amber-400", shadow: "shadow-[0_0_8px_rgba(251,191,36,0.6)]" },
-  stitching_received: { label: "Stitching received", color: "bg-amber-500", shadow: "shadow-[0_0_8px_rgba(245,158,11,0.6)]" },
-  qc_applied:         { label: "QC completed",       color: "bg-emerald-500", shadow: "shadow-[0_0_8px_rgba(16,185,129,0.6)]" },
-  rework_recorded:    { label: "Rework recorded",    color: "bg-orange-500", shadow: "shadow-[0_0_8px_rgba(249,115,22,0.6)]" },
-  order_closed:       { label: "Order closed",       color: "bg-emerald-600", shadow: "shadow-[0_0_8px_rgba(5,150,105,0.6)]" },
+  order_created:      { label: "Order created",      color: "bg-slate-200 text-slate-700", shadow: "ring-1 ring-slate-200" },
+  cutting_recorded:   { label: "Cutting recorded",   color: "bg-blue-100 text-blue-700", shadow: "ring-1 ring-blue-200" },
+  stitching_sent:     { label: "Sent to stitching",  color: "bg-amber-100 text-amber-700", shadow: "ring-1 ring-amber-200" },
+  stitching_received: { label: "Stitching received", color: "bg-amber-200 text-amber-800", shadow: "ring-1 ring-amber-300" },
+  qc_applied:         { label: "QC completed",       color: "bg-emerald-100 text-emerald-700", shadow: "ring-1 ring-emerald-200" },
+  rework_recorded:    { label: "Rework recorded",    color: "bg-orange-100 text-orange-700", shadow: "ring-1 ring-orange-200" },
+  order_closed:       { label: "Order closed",       color: "bg-emerald-200 text-emerald-800", shadow: "ring-1 ring-emerald-300" },
 };
 
 function humanEvent(type: string) {
-  return EVENT_LABELS[type] ?? { label: type.replace(/_/g, " "), color: "bg-slate-400", shadow: "shadow-none" };
+  return EVENT_LABELS[type] ?? { label: type.replace(/_/g, " "), color: "bg-slate-100 text-slate-700", shadow: "ring-1 ring-slate-200" };
 }
 
 function relativeTime(iso: string) {
@@ -109,18 +109,20 @@ export default async function Home() {
 
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        {STATS.map(({ key, label, sub, icon: Icon, accent, iconBg, iconColor, href }) => (
+        {STATS.map(({ key, label, sub, icon: Icon, iconBg, iconColor, href }) => (
           <Link key={key} href={href} className="group">
-            <Card className={`relative overflow-hidden p-5 border-t-4 ${accent} hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full`}>
-              <div className={`inline-flex p-2.5 rounded-xl ${iconBg} mb-4 shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                <Icon size={18} className={iconColor} strokeWidth={2} />
+            <Card className="relative overflow-hidden p-6 h-full flex flex-col justify-between">
+              <div className="flex items-start justify-between mb-4">
+                <div className={`inline-flex p-3 rounded-2xl ${iconBg} shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)] group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300`}>
+                  <Icon size={20} className={iconColor} strokeWidth={2.5} />
+                </div>
               </div>
               <div>
-                <div className="text-4xl font-black tracking-tighter text-foreground mb-1 tabular-nums">
+                <div className="text-4xl font-black tracking-tighter text-foreground mb-2 tabular-nums">
                   {summary[key]}
                 </div>
-                <div className="text-sm font-semibold text-foreground/90">{label}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>
+                <div className="text-sm font-bold text-foreground/90">{label}</div>
+                <div className="text-xs font-medium text-muted-foreground/70 mt-1">{sub}</div>
               </div>
             </Card>
           </Link>
@@ -142,39 +144,35 @@ export default async function Home() {
           {recentEvents.length === 0 ? (
             <p className="text-sm text-muted-foreground px-6 py-8 text-center">No recent activity found.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs font-medium text-muted-foreground border-b border-border/40 bg-slate-50/30">
-                    <th className="px-6 py-3">Event Details</th>
-                    <th className="px-4 py-3">Order Ref</th>
-                    <th className="px-6 py-3 text-right">Time</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {recentEvents.map((e, i) => {
-                    const { label, color, shadow } = humanEvent(e.event_type);
-                    return (
-                      <tr key={i} className="group hover:bg-slate-50 transition-colors duration-200">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${color} ${shadow}`} />
-                            <span className="font-medium text-foreground/90">{label}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <Link href="/production" className="inline-flex items-center justify-center px-2 py-1 rounded bg-slate-100 text-accent text-xs font-mono font-medium hover:bg-slate-200 transition-colors">
+            <div className="px-6 py-4">
+              <div className="space-y-6 relative before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border/60 before:to-transparent">
+                {recentEvents.map((e, i) => {
+                  const { label, color, shadow } = humanEvent(e.event_type);
+                  return (
+                    <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                      
+                      {/* Timeline Dot */}
+                      <div className={`flex items-center justify-center w-6 h-6 rounded-full border-4 border-white ${color} ${shadow} shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 ml-0 mr-4 md:mx-0 shadow-sm transition-transform duration-300 group-hover:scale-110`}>
+                      </div>
+                      
+                      {/* Event Card */}
+                      <div className="w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] bg-white/50 border border-border/40 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-sm text-foreground/90">{label}</span>
+                          <span className="tnum text-xs font-medium text-muted-foreground/60">{relativeTime(e.created_at)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-muted-foreground">Order</span>
+                          <Link href="/production" className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-muted text-accent text-xs font-mono font-medium hover:bg-accent/10 transition-colors">
                             #{e.production_order_id}
                           </Link>
-                        </td>
-                        <td className="tnum px-6 py-4 text-right text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors">
-                          {relativeTime(e.created_at)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </Card>
@@ -189,14 +187,14 @@ export default async function Home() {
               <Link
                 key={href + label}
                 href={href}
-                className="flex flex-col items-center justify-center gap-2 rounded-xl p-4 border border-transparent hover:border-border/60 bg-transparent hover:bg-slate-50/80 hover:shadow-sm transition-all duration-200 group text-center"
+                className="flex flex-col items-center justify-center gap-3 rounded-2xl p-5 bg-white border border-border/50 hover:border-accent/30 hover:bg-accent/5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)] transition-all duration-300 group text-center hover:-translate-y-0.5"
               >
-                <div className="p-2.5 rounded-full bg-slate-100 text-muted-foreground group-hover:bg-white group-hover:text-accent transition-colors shadow-sm">
-                  <Icon size={16} strokeWidth={2.5} />
+                <div className="p-3 rounded-xl bg-muted group-hover:bg-accent group-hover:text-white transition-colors duration-300 shadow-sm text-muted-foreground">
+                  <Icon size={18} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-foreground group-hover:text-accent transition-colors">{label}</div>
-                  <div className="text-[10px] leading-tight text-muted-foreground mt-0.5 px-1">{desc}</div>
+                  <div className="text-sm font-bold text-foreground group-hover:text-accent transition-colors duration-300">{label}</div>
+                  <div className="text-[11px] font-medium leading-tight text-muted-foreground/70 mt-1 px-1">{desc}</div>
                 </div>
               </Link>
             ))}
