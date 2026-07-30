@@ -106,14 +106,13 @@ export default async function ShopPage({
   }
 
   const sort = searchParams.sort;
+  // Sort on the resolved price: per-variant prices are optional (most are blank so
+  // sizes inherit the root price), so reading variants[0].price gave NaN and left
+  // the list unsorted.
   if (sort === "low") {
-    products = [...products].sort(
-      (a, b) => Number(a.variants[0].price) - Number(b.variants[0].price)
-    );
+    products = [...products].sort((a, b) => price(a) - price(b));
   } else if (sort === "high") {
-    products = [...products].sort(
-      (a, b) => Number(b.variants[0].price) - Number(a.variants[0].price)
-    );
+    products = [...products].sort((a, b) => price(b) - price(a));
   }
 
   const active = filters.find((f) => f.key === c) ?? filters[0];
@@ -300,7 +299,7 @@ export default async function ShopPage({
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
         {products.map((p, i) => (
-          <ProductCard key={p.id} product={p} priority={i < 4} />
+          <ProductCard key={p.handle} product={p} priority={i < 4} />
         ))}
       </div>
     </div>

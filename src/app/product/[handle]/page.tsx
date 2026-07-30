@@ -19,8 +19,10 @@ export default async function ProductPage({ params }: { params: { handle: string
   const product = await productByHandle(params.handle);
   if (!product) notFound();
 
+  // Handle is the identity the rest of the catalog dedupes on; the numeric id is
+  // optional in the dataset and null on the legacy documents.
   const related = (await byCategory(productCategory(product)))
-    .filter((p) => p.id !== product.id)
+    .filter((p) => p.handle !== product.handle)
     .slice(0, 4);
 
   return (
@@ -44,7 +46,7 @@ export default async function ProductPage({ params }: { params: { handle: string
           </Reveal>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
             {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard key={p.handle} product={p} />
             ))}
           </div>
         </section>

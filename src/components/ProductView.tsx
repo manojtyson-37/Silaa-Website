@@ -13,10 +13,27 @@ function inr(n: number) {
 export default function ProductView({ product }: { product: Product }) {
   const { add } = useCart();
   const [imgIdx, setImgIdx] = useState(0);
+  const firstAvailable = product.variants.find((v) => v.available);
   const [variantId, setVariantId] = useState<number | null>(
-    product.variants.find((v) => v.available)?.id ?? null
+    firstAvailable?.id ?? null
   );
   const [error, setError] = useState(false);
+
+  // Colours only get their own row when the product actually has more than one;
+  // otherwise the size buttons carry the whole label as before.
+  const colors = Array.from(
+    new Set(product.variants.map((v) => v.color).filter(Boolean) as string[])
+  );
+  const colorHasStock = (c: string) =>
+    product.variants.some((v) => v.color === c && v.available);
+  // Start on the colour of the pre-selected variant so the size row and the
+  // highlighted button can never disagree.
+  const [color, setColor] = useState<string | null>(
+    firstAvailable?.color ?? colors.find(colorHasStock) ?? colors[0] ?? null
+  );
+  const sizeVariants =
+    colors.length > 1 ? product.variants.filter((v) => v.color === color) : product.variants;
+  const canBuy = sizeVariants.some((v) => v.available);
 
   const selected = product.variants.find((v) => v.id === variantId);
   const variantPrice = selected?.price ? Number(selected.price) : 0;
@@ -94,12 +111,46 @@ export default function ProductView({ product }: { product: Product }) {
           <span className="text-xs text-smoke ml-3 uppercase tracking-[0.15em]">incl. all taxes</span>
         </p>
 
+        {colors.length > 1 && (
+          <div className="mt-8">
+            <p className="text-xs uppercase tracking-[0.2em] text-smoke mb-3">
+              Select colour
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {colors.map((c) => (
+                <button
+                  key={c}
+                  disabled={!colorHasStock(c)}
+                  onClick={() => {
+                    setColor(c);
+                    const next = product.variants.find(
+                      (v) => v.color === c && v.available
+                    );
+                    setVariantId(next?.id ?? null);
+                    setError(false);
+                  }}
+                  className={`px-5 py-3 text-sm border transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:line-through ${
+                    color === c
+                      ? "bg-ink text-ivory border-ink"
+                      : "border-ink/25 hover:border-ink"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-8">
           <p className="text-xs uppercase tracking-[0.2em] text-smoke mb-3">
             Select size
+            {colors.length === 1 && (
+              <span className="ml-2 normal-case tracking-normal">· {colors[0]}</span>
+            )}
           </p>
           <div className="flex flex-wrap gap-2.5">
-            {product.variants.map((v) => (
+            {sizeVariants.map((v) => (
               <button
                 key={v.id}
                 disabled={!v.available}
@@ -113,20 +164,28 @@ export default function ProductView({ product }: { product: Product }) {
                     : "border-ink/25 hover:border-ink"
                 }`}
               >
-                {v.title}
+                {v.size ?? v.title}
               </button>
             ))}
           </div>
           {error && (
             <p className="text-red-600 text-xs mt-2">Please select a size.</p>
           )}
+          {!canBuy && (
+            <p className="text-smoke text-xs mt-3 uppercase tracking-[0.15em]">
+              {colors.length > 1
+                ? `Sold out in ${color} — try another colour.`
+                : "Sold out — every size is currently unavailable."}
+            </p>
+          )}
         </div>
 
         <button
           onClick={handleAdd}
-          className="mt-8 w-full bg-ink text-ivory py-5 text-xs uppercase tracking-[0.3em] hover:bg-gold transition-colors duration-300 cursor-pointer"
+          disabled={!canBuy}
+          className="mt-8 w-full bg-ink text-ivory py-5 text-xs uppercase tracking-[0.3em] hover:bg-gold transition-colors duration-300 cursor-pointer disabled:cursor-not-allowed disabled:bg-smoke/40 disabled:hover:bg-smoke/40"
         >
-          Add to bag — {inr(p)}
+          {canBuy ? `Add to bag — ${inr(p)}` : "Sold out"}
         </button>
         <p className="mt-3 text-center text-[11px] text-smoke uppercase tracking-[0.15em]">
           COD available · Free shipping on prepaid orders

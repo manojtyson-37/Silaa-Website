@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import crypto from "crypto";
-import { variantById, resolveDiscount } from "@/lib/catalog";
+import { variantById, resolveDiscount, price as productPrice } from "@/lib/catalog";
 import type { Campaign } from "@/lib/catalog";
 
 export type OrderItem = { variantId: number; qty: number };
@@ -63,9 +63,10 @@ export async function priceItems(items: unknown, discountCode?: string):
     const found = await variantById(variantId);
     if (!found || !found.variant.available) return null;
     let price = Number(found.variant.price);
-    if (price <= 0) {
-      price = found.product.price || Number(found.product.variants[0]?.price || 0);
+    if (!Number.isFinite(price) || price <= 0) {
+      price = productPrice(found.product);
     }
+    if (price <= 0) return null;
     lines.push({
       variantId,
       erpVariantId: found.variant.erpVariantId,
@@ -203,8 +204,15 @@ export async function saveOrder(
   try {
     const ERP_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const ADMIN_USER = process.env.ERP_ADMIN_USERNAME || "admin";
-    const ADMIN_PASS = process.env.ERP_ADMIN_PASSWORD || "admin";
-    
+    const ADMIN_PASS = process.env.ERP_ADMIN_PASSWORD;
+
+    // Fail closed: guessing "admin" only ever produced a failed login attempt
+    // against the live ERP on every order.
+    if (!ADMIN_PASS) {
+      console.error("ERP_ADMIN_PASSWORD is not set — skipping ERP order sync for", ref);
+      return ref;
+    }
+
     // 1. Login to ERP
     const loginRes = await fetch(`${ERP_URL}/api/erp/auth/login`, {
       method: "POST",

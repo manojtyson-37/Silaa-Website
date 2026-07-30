@@ -85,7 +85,10 @@ const CartContext = createContext<{
   setDiscountCode: (code: string) => void;
 } | null>(null);
 
-const STORAGE_KEY = "sila-cart-v2";
+// v3: variant ids are now derived from the Sanity array key instead of the variant
+// title, so every id changed once. Stale v2 carts would have survived hydration and
+// then failed the whole checkout with "invalid cart", so retire the key instead.
+const STORAGE_KEY = "sila-cart-v3";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { items: [], open: false, discountCode: "" });

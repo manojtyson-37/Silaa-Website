@@ -24,6 +24,10 @@ export default function ProductCard({
   const cmp = compareAt(product);
   const isNew = isNewLaunch(product);
   const availableSizes = product.variants.filter((v) => v.available);
+  // With several colours the size name alone repeats itself in the strip, so keep
+  // the full "Small / White" label there.
+  const multiColour =
+    new Set(product.variants.map((v) => v.color).filter(Boolean)).size > 1;
 
   return (
     <div className="group">
@@ -91,7 +95,7 @@ export default function ProductCard({
                     });
                   }}
                 >
-                  {v.title}
+                  {multiColour ? v.title : v.size ?? v.title}
                 </button>
               ))}
             </div>
