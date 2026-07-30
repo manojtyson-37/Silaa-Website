@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_default_warehouse_id
 from app.db import get_db
 from app.finished_goods.service import write_production_complete
-from app.production.models import CuttingRecord, ProductionEvent, ProductionOrder, ProductionOrderVariant, QCState, StitchingBatch
+from app.production.models import CuttingRecord, ProductionEvent, ProductionOrder, ProductionOrderVariant, QCState, ReworkRecord, StitchingBatch
 from app.production.service import (
     apply_qc,
     apply_rework,
@@ -102,6 +102,23 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     if order is None:
         raise HTTPException(404, "ProductionOrder not found")
     return order
+
+
+@router.delete("/production-orders/{order_id}", status_code=204)
+def delete_order(order_id: int, db: Session = Depends(get_db)):
+    order = db.get(ProductionOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "ProductionOrder not found")
+    # Cascade: ReworkRecord → StitchingBatch → CuttingRecord/Variant/Event → Order
+    batch_ids = [b.id for b in db.query(StitchingBatch).filter_by(production_order_id=order_id).all()]
+    if batch_ids:
+        db.query(ReworkRecord).filter(ReworkRecord.parent_stitching_batch_id.in_(batch_ids)).delete(synchronize_session=False)
+    db.query(StitchingBatch).filter_by(production_order_id=order_id).delete()
+    db.query(CuttingRecord).filter_by(production_order_id=order_id).delete()
+    db.query(ProductionOrderVariant).filter_by(production_order_id=order_id).delete()
+    db.query(ProductionEvent).filter_by(production_order_id=order_id).delete()
+    db.delete(order)
+    db.commit()
 
 
 @router.get("/production-orders/{order_id}/variants")

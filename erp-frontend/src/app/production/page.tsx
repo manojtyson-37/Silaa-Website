@@ -7,8 +7,8 @@ export default async function ProductionListPage() {
   const token = await requireAuth();
   
   const [_orders, _styles] = await Promise.all([
-    api.get<ProductionOrder[]>("/production-orders", token),
-    api.get<StyleWithVariants[]>("/styles-with-variants", token),
+    api.get<ProductionOrder[]>("/production-orders", token).catch(() => null),
+    api.get<StyleWithVariants[]>("/styles-with-variants", token).catch(() => null),
   ]);
   const orders = _orders || [];
   const styles = _styles || [];

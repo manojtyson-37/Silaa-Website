@@ -43,7 +43,8 @@ export default function StylesClient({ styles, variantsByStyle, fabrics }: Props
                       await api.delete(`/styles/${style.id}`, getClientToken());
                       router.refresh();
                     } catch (err) {
-                      alert(err instanceof Error ? err.message : "Delete failed");
+                      const msg = err instanceof Error ? err.message.replace(/^\d+ [^:]+: /, "") : "Delete failed";
+                      alert(msg);
                     }
                   }}
                   className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"

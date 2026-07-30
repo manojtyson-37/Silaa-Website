@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight, Plus } from "lucide-react";
-import { ProductionOrder, StyleWithVariants } from "@/lib/api";
+import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ProductionOrder, StyleWithVariants, api } from "@/lib/api";
+import { getClientToken } from "@/lib/clientAuth";
 import { Button, Card, StatusPill } from "@/components/ui";
 import NewProductionOrderForm from "./NewProductionOrderForm";
 
@@ -62,6 +63,24 @@ export default function ProductionClient({ orders, styles }: Props) {
                 </div>
                 <div className="flex items-center gap-4">
                   <StatusPill value={o.status} />
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!confirm(`Delete production order #${o.id}? This cannot be undone.`)) return;
+                      try {
+                        await api.delete(`/production-orders/${o.id}`, getClientToken());
+                        router.refresh();
+                      } catch (err) {
+                        const msg = err instanceof Error ? err.message.replace(/^\d+ [^:]+: /, "") : "Delete failed";
+                        alert(msg);
+                      }
+                    }}
+                    className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                    title="Delete order"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                   <ChevronRight size={16} className="text-muted-foreground" />
                 </div>
               </Card>
