@@ -7,7 +7,7 @@ export default async function PODetailPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const token = await requireAuth();
   const [suppliers] = await Promise.all([
-    api.get<Supplier[]>("/suppliers", token),
+    api.get<Supplier[]>("/suppliers", token).catch(() => null),
   ]);
 
   let po: PurchaseOrderDetail;

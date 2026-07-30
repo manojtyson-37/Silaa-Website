@@ -6,10 +6,10 @@ import { requireAuth } from "@/lib/serverAuth";
 export default async function ReportsPage() {
   const token = await requireAuth();
   const [_variance, _wastage, _styles, _suppliers] = await Promise.all([
-    api.get<FabricVarianceRow[]>("/reports/fabric-variance", token),
-    api.get<WastageRejectionReport>("/reports/wastage", token),
-    api.get<Style[]>("/styles", token),
-    api.get<Supplier[]>("/suppliers", token),
+    api.get<FabricVarianceRow[]>("/reports/fabric-variance", token).catch(() => null),
+    api.get<WastageRejectionReport>("/reports/wastage", token).catch(() => null),
+    api.get<Style[]>("/styles", token).catch(() => null),
+    api.get<Supplier[]>("/suppliers", token).catch(() => null),
   ]);
   
   const variance = _variance || [];

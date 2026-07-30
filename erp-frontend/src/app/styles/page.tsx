@@ -6,8 +6,8 @@ import { requireAuth } from "@/lib/serverAuth";
 
 export default async function StylesPage() {
   const token = await requireAuth();
-  const _stylesWithVariants = await api.get<StyleWithVariants[]>("/styles-with-variants", token);
-  const _fabrics = await api.get<FabricItem[]>("/fabric-items", token);
+  const _stylesWithVariants = await api.get<StyleWithVariants[]>("/styles-with-variants", token).catch(() => null);
+  const _fabrics = await api.get<FabricItem[]>("/fabric-items", token).catch(() => null);
   const stylesWithVariants = _stylesWithVariants || [];
   const fabrics = _fabrics || [];
 

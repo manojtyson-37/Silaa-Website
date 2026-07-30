@@ -7,8 +7,8 @@ import { requireAuth } from "@/lib/serverAuth";
 export default async function PurchaseOrdersPage() {
   const token = await requireAuth();
   const [_orders, _suppliers] = await Promise.all([
-    api.get<PurchaseOrder[]>("/purchase-orders", token),
-    api.get<Supplier[]>("/suppliers", token),
+    api.get<PurchaseOrder[]>("/purchase-orders", token).catch(() => null),
+    api.get<Supplier[]>("/suppliers", token).catch(() => null),
   ]);
   const orders = _orders || [];
   const suppliers = _suppliers || [];

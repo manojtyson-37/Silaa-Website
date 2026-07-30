@@ -14,7 +14,7 @@ export default async function PrintPage({ params }: { params: Promise<{ id: stri
     notFound();
   }
 
-  const suppliers = await api.get<Supplier[]>("/suppliers", token);
+  const suppliers = await api.get<Supplier[]>("/suppliers", token).catch(() => null);
 
   return <PrintClient po={po!} suppliers={suppliers} />;
 }

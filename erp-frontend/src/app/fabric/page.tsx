@@ -7,9 +7,9 @@ import { requireAuth } from "@/lib/serverAuth";
 export default async function FabricPage() {
   const token = await requireAuth();
   const [_lots, _fabricItems, _suppliers] = await Promise.all([
-    api.get<FabricLotWithBalance[]>("/fabric-lots-with-balance", token),
-    api.get<FabricItem[]>("/fabric-items", token),
-    api.get<Supplier[]>("/suppliers", token),
+    api.get<FabricLotWithBalance[]>("/fabric-lots-with-balance", token).catch(() => null),
+    api.get<FabricItem[]>("/fabric-items", token).catch(() => null),
+    api.get<Supplier[]>("/suppliers", token).catch(() => null),
   ]);
   const lots = _lots || [];
   const fabricItems = _fabricItems || [];

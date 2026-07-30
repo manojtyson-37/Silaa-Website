@@ -18,12 +18,12 @@ export default async function ProductionOrderPage({
   const token = await requireAuth();
 
   const [order, variants, cuttingRecords, batches, events, cost] = await Promise.all([
-    api.get<ProductionOrder>(`/production-orders/${id}`, token),
-    api.get<VariantBreakdown[]>(`/production-orders/${id}/variants`, token),
-    api.get<CuttingRecord[]>(`/production-orders/${id}/cutting-records`, token),
-    api.get<StitchingBatch[]>(`/production-orders/${id}/stitching-batches`, token),
-    api.get<ProductionEvent[]>(`/production-orders/${id}/events`, token),
-    api.get<CostBreakdown>(`/production-orders/${id}/cost-breakdown`, token),
+    api.get<ProductionOrder>(`/production-orders/${id}`, token).catch(() => null),
+    api.get<VariantBreakdown[]>(`/production-orders/${id}/variants`, token).catch(() => null),
+    api.get<CuttingRecord[]>(`/production-orders/${id}/cutting-records`, token).catch(() => null),
+    api.get<StitchingBatch[]>(`/production-orders/${id}/stitching-batches`, token).catch(() => null),
+    api.get<ProductionEvent[]>(`/production-orders/${id}/events`, token).catch(() => null),
+    api.get<CostBreakdown>(`/production-orders/${id}/cost-breakdown`, token).catch(() => null),
   ]);
 
   return (
