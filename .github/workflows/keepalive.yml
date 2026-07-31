@@ -9,10 +9,17 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping backend health endpoint
+      - name: Warm backend — health + key data endpoints
         run: |
-          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://silaa-website.vercel.app/api/erp/health)
-          echo "Health check status: $status"
-          if [ "$status" != "200" ]; then
-            echo "Warning: backend returned $status"
-          fi
+          BASE="https://silaa-website.vercel.app/api/erp"
+          for path in health styles-with-variants sales-orders expenses proforma-invoices; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$BASE/$path")
+            echo "$path: $status"
+          done
+      - name: Warm ERP frontend routes
+        run: |
+          BASE="https://erp.silacollective.in"
+          for path in "" /sales-orders /proforma-invoices /expenses /styles; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$BASE$path")
+            echo "erp$path: $status"
+          done

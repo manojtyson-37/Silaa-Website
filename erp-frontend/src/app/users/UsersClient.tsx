@@ -20,6 +20,8 @@ export default function UsersClient({ initialUsers, token }: { initialUsers: Use
   const [editRole, setEditRole] = useState("viewer");
   const [editActive, setEditActive] = useState(true);
 
+  const bust = () => fetch("/api/revalidate", { method: "POST", body: JSON.stringify({ tag: "users" }), headers: { "Content-Type": "application/json" } });
+
   const handleAddUser = async () => {
     try {
       const u = await api.post<User>("/users", { username: newUsername, password: newPassword, role: newRole }, token);
@@ -28,6 +30,7 @@ export default function UsersClient({ initialUsers, token }: { initialUsers: Use
       setNewUsername("");
       setNewPassword("");
       setNewRole("viewer");
+      bust();
       router.refresh();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : String(err));
@@ -44,6 +47,7 @@ export default function UsersClient({ initialUsers, token }: { initialUsers: Use
       setUsers(users.map(user => user.id === id ? u : user));
       setEditingId(null);
       setEditPassword("");
+      bust();
       router.refresh();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : String(err));

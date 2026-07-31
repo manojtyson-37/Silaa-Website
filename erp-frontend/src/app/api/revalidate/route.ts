@@ -3,11 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/serverAuth";
 import { decodeToken } from "@/lib/api";
 
-// Only customer-create (AddCustomerForm) calls this today. Delete-customer,
-// add-abandoned-cart, and the public /customers/track-cart endpoint (hit by
-// the storefront on cart abandonment) don't — those rely on the 30s TTL in
-// requestCached to self-heal instead of instant invalidation.
-const KNOWN_TAGS = new Set(["customers"]);
+const KNOWN_TAGS = new Set(["customers", "users"]);
 
 export async function POST(req: NextRequest) {
   const token = await requireAuth();
