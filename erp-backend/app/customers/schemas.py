@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+import re
+from pydantic import BaseModel, field_validator
 from typing import List, Optional, Any
 from datetime import datetime
 
@@ -22,6 +23,39 @@ class CustomerBase(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+
+    @field_validator('email', 'phone', 'address', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v):
+        if v is None:
+            return v
+        # Strip common formatting
+        cleaned = re.sub(r'[\s\-\(\)]', '', str(v))
+        # Handle country code or leading zero
+        if cleaned.startswith('+91'):
+            cleaned = cleaned[3:]
+        elif cleaned.startswith('0') and len(cleaned) == 11:
+            cleaned = cleaned[1:]
+            
+        if not re.match(r'^[6789]\d{9}$', cleaned):
+            raise ValueError("Phone number must be exactly 10 digits and start with 6, 7, 8, or 9.")
+        return cleaned
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        if v is None:
+            return v
+        if not re.match(r'^[\w\.\+\-]+@[\w\-]+\.[\w\.\-]+$', v):
+            raise ValueError("Must be a valid email address.")
+        return v
 
 class CustomerCreate(CustomerBase):
     pass
