@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Factory, ShoppingCart, CheckCircle2, Package, ArrowRight, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
 import { DashboardSummary } from "@/lib/api";
 import { Card } from "@/components/ui";
 import { useERP } from "@/lib/useERP";
@@ -50,10 +51,14 @@ export default function DashboardClient({ token }: { token: string }) {
   const s = summary ?? { open_production_orders: 0, draft_sales_orders: 0, fulfilled_sales_orders: 0, pending_purchase_orders: 0, recent_events: [] };
   const recentEvents = s.recent_events ?? [];
 
-  const now = new Date();
-  const hour = now.getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const today = now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const [greeting, setGreeting] = useState("");
+  const [today, setToday] = useState("");
+  useEffect(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    setGreeting(hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
+    setToday(now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+  }, []);
 
   return (
     <main className="max-w-6xl mx-auto px-8 py-10 space-y-8">

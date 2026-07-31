@@ -37,6 +37,7 @@ function shiftMonth(ym: string, delta: number) {
 }
 
 function currentYM() {
+  if (typeof window === "undefined") return "";
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
 }
