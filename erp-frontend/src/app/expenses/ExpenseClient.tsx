@@ -36,8 +36,7 @@ function shiftMonth(ym: string, delta: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function currentYM() {
-  if (typeof window === "undefined") return "";
+function todayYM() {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
 }
@@ -100,7 +99,7 @@ type ProcurementFormItem = {
 
 const BLANK_FORM = () => ({
   category_id: "", amount: "",
-  expense_date: new Date().toISOString().slice(0, 10),
+  expense_date: "",
   description: "", paid_to: "", tags: "",
   receipt_urls: [] as string[],
   is_recurring: false,
@@ -143,7 +142,8 @@ export default function ExpenseClient({ token }: Props) {
 
   const sym = CURRENCY_SYMBOLS[currency] ?? currency;
 
-  const [selectedMonth, setSelectedMonth] = useState(currentYM);
+  const [selectedMonth, setSelectedMonth] = useState("");
+  useEffect(() => { setSelectedMonth(todayYM()); }, []);
 
   // Category UI
   const [catOpen, setCatOpen] = useState(false);
@@ -158,6 +158,7 @@ export default function ExpenseClient({ token }: Props) {
 
   // Expense form
   const [expForm, setExpForm] = useState(BLANK_FORM);
+  useEffect(() => { setExpForm(f => ({ ...f, expense_date: new Date().toISOString().slice(0, 10) })); }, []);
   const [expOpen, setExpOpen] = useState(false);
 
   // Expense edit
