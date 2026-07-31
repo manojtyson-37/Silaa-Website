@@ -26,6 +26,7 @@ export type OrderRecord = {
 };
 
 const ERP_BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://silaa-website.vercel.app";
+const INTERNAL_KEY = process.env.ERP_INTERNAL_KEY ?? "";
 
 export function validateCustomer(c: unknown): Customer | null {
   if (!c || typeof c !== "object") return null;
@@ -129,7 +130,7 @@ export async function savePending(
 ): Promise<void> {
   const res = await fetch(`${ERP_BASE}/api/erp/pending-orders`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Internal-Key": INTERNAL_KEY },
     body: JSON.stringify({ razorpay_order_id: razorpayOrderId, payload: data }),
   });
   if (!res.ok) throw new Error(`savePending failed: ${res.status}`);
@@ -141,11 +142,13 @@ export async function takePending(
   try {
     const res = await fetch(`${ERP_BASE}/api/erp/pending-orders/${encodeURIComponent(razorpayOrderId)}`, {
       method: "DELETE",
+      headers: { "X-Internal-Key": INTERNAL_KEY },
     });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`takePending failed: ${res.status}`);
     return await res.json();
-  } catch {
+  } catch (err) {
+    console.error("takePending error — verified payment may be unsynced:", err);
     return null;
   }
 }

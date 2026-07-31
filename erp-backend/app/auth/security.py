@@ -15,11 +15,10 @@ import time
 _FALLBACK_KEY = "fallback_secret_please_change_in_production"
 SECRET_KEY = os.environ.get("AUTH_SECRET_KEY", _FALLBACK_KEY)
 if SECRET_KEY == _FALLBACK_KEY:
-    import warnings
-    warnings.warn(
-        "AUTH_SECRET_KEY is not set — using public fallback. "
-        "All tokens are forgeable. Set AUTH_SECRET_KEY in Vercel env vars immediately.",
-        stacklevel=1,
+    import logging as _logging
+    _logging.critical(
+        "SECURITY: AUTH_SECRET_KEY is not set — using public fallback. "
+        "All ERP tokens are forgeable. Set AUTH_SECRET_KEY in Vercel env vars immediately."
     )
 TOKEN_TTL_SECONDS = 60 * 60 * 12  # 12h
 

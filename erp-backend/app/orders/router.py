@@ -1,9 +1,10 @@
 import json
+import os
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -388,30 +389,40 @@ def margin(order_id: int, db: Session = Depends(get_db)):
     return {"order_id": order_id, "lines": line_margins, "total_margin": total_margin}
 
 
-# ── Pending order endpoints (unauthenticated — stores ephemeral cart data only) ──
+# ── Pending order endpoints (internal — server-to-server only, requires X-Internal-Key) ──
+
+def _verify_internal_key(x_internal_key: str = Header(None)):
+    expected = os.environ.get("ERP_INTERNAL_KEY")
+    if not expected or x_internal_key != expected:
+        raise HTTPException(403, "Forbidden")
+
 
 class PendingOrderIn(BaseModel):
-    razorpay_order_id: str
+    razorpay_order_id: str = Field(max_length=64)
     payload: dict
 
 
-@router.post("/pending-orders", status_code=201)
+_MAX_PAYLOAD_BYTES = 65_536
+
+
+@router.post("/pending-orders", status_code=201, dependencies=[Depends(_verify_internal_key)])
 def create_pending_order(body: PendingOrderIn, db: Session = Depends(get_db)):
     if not body.razorpay_order_id.startswith("order_"):
         raise HTTPException(400, "Invalid razorpay_order_id format")
-    existing = db.get(PendingOrder, body.razorpay_order_id)
-    if existing:
-        existing.payload = json.dumps(body.payload)
-    else:
-        db.add(PendingOrder(razorpay_order_id=body.razorpay_order_id, payload=json.dumps(body.payload)))
-    # Prune orders older than 2 hours to prevent table bloat
+    raw = json.dumps(body.payload)
+    if len(raw) > _MAX_PAYLOAD_BYTES:
+        raise HTTPException(400, "Payload too large")
+    if db.get(PendingOrder, body.razorpay_order_id):
+        raise HTTPException(409, "Pending order already exists")
+    db.add(PendingOrder(razorpay_order_id=body.razorpay_order_id, payload=raw))
+    # Prune records older than 2 hours to prevent table bloat
     cutoff = datetime.now(timezone.utc) - timedelta(hours=2)
     db.query(PendingOrder).filter(PendingOrder.created_at < cutoff).delete()
     db.commit()
     return {"ok": True}
 
 
-@router.delete("/pending-orders/{razorpay_order_id}")
+@router.delete("/pending-orders/{razorpay_order_id}", dependencies=[Depends(_verify_internal_key)])
 def take_pending_order(razorpay_order_id: str, db: Session = Depends(get_db)):
     record = db.get(PendingOrder, razorpay_order_id)
     if record is None:
