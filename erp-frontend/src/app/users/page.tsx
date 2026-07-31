@@ -1,10 +1,7 @@
-import { api, User } from "@/lib/api";
 import { requireAuth } from "@/lib/serverAuth";
 import UsersClient from "./UsersClient";
 
 export default async function UsersPage() {
   const token = await requireAuth();
-  const users = await api.getCached<User[]>("/users", "users", token).catch(() => null) ?? [];
-
-  return <UsersClient initialUsers={users} token={token} />;
+  return <UsersClient token={token} />;
 }

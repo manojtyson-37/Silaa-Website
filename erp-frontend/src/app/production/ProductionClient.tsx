@@ -6,16 +6,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import { ProductionOrder, StyleWithVariants, api } from "@/lib/api";
+import { useERP } from "@/lib/useERP";
 import { getClientToken } from "@/lib/clientAuth";
-import { Button, Card, StatusPill } from "@/components/ui";
+import { PageHeader, Button, Card, StatusPill } from "@/components/ui";
 import NewProductionOrderForm from "./NewProductionOrderForm";
 
-type Props = {
-  orders: ProductionOrder[];
-  styles: StyleWithVariants[];
-};
+type Props = { token: string };
 
-export default function ProductionClient({ orders, styles }: Props) {
+export default function ProductionClient({ token }: Props) {
+  const { data: orders = [] } = useERP<ProductionOrder[]>("/production-orders", token);
+  const { data: styles = [] } = useERP<StyleWithVariants[]>("/styles-with-variants", token);
   const [isCreating, setIsCreating] = useState(false);
   const router = useRouter();
 
@@ -23,6 +23,7 @@ export default function ProductionClient({ orders, styles }: Props) {
 
   return (
     <>
+      <PageHeader title="Production Orders" subtitle={`${orders.length} order${orders.length === 1 ? "" : "s"}`} />
       <div className="flex gap-4 mb-6">
         <Button onClick={() => setIsCreating(true)}>
           <Plus size={16} />

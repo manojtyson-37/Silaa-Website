@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { fmtQty, fmtCost } from "@/lib/format";
 import { api, FabricItem, FabricLotWithBalance, Supplier } from "@/lib/api";
-import { Card, Table, Th, Td, Tr } from "@/components/ui";
+import { useERP } from "@/lib/useERP";
+import { PageHeader, Card, Table, Th, Td, Tr } from "@/components/ui";
 import EditFabricItemForm from "./EditFabricItemForm";
 import GRNForm from "./GRNForm";
 import LogReadyStockForm from "./LogReadyStockForm";
@@ -13,20 +14,30 @@ import EditLotRow from "./EditLotRow";
 import { Pencil, Trash2 } from "lucide-react";
 import { getClientToken } from "@/lib/clientAuth";
 
-type Props = {
-  fabricItems: FabricItem[];
-  lots: FabricLotWithBalance[];
-  suppliers: Supplier[];
-};
+type Props = { token: string };
 
-export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
+export default function FabricClient({ token }: Props) {
+  const { data: lots = [] } = useERP<FabricLotWithBalance[]>("/fabric-lots-with-balance", token);
+  const { data: fabricItems = [] } = useERP<FabricItem[]>("/fabric-items", token);
+  const { data: suppliers = [] } = useERP<Supplier[]>("/suppliers", token);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingLotId, setEditingLotId] = useState<number | null>(null);
   const router = useRouter();
 
   const supplierMap = new Map(suppliers.map(s => [s.id, s.name]));
 
+  if (fabricItems.length === 0) {
+    return (
+      <>
+        <PageHeader title="Fabric Inventory" subtitle={`${lots.length} lot${lots.length === 1 ? "" : "s"}`} />
+        <Card className="p-8 text-center text-muted-foreground text-sm">No fabrics in inventory.</Card>
+      </>
+    );
+  }
+
   return (
+    <>
+      <PageHeader title="Fabric Inventory" subtitle={`${lots.length} lot${lots.length === 1 ? "" : "s"}`} />
     <div className="flex flex-col gap-5 mb-6">
       {fabricItems.map((item) => {
         const itemLots = lots.filter(l => l.fabric_item_id === item.id);
@@ -215,5 +226,6 @@ export default function FabricClient({ fabricItems, lots, suppliers }: Props) {
         );
       })}
     </div>
+  </>
   );
 }

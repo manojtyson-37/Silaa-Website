@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { SalesOrder, OrderMarginTotal } from "@/lib/api";
+import { useERP } from "@/lib/useERP";
 import SOClient from "./SOClient";
 import NewInvoiceForm from "./NewSalesOrderForm";
 
-type Props = {
-  orders: SalesOrder[];
-  margins: OrderMarginTotal[];
-};
+type Props = { token: string };
 
-export default function InvoicesPageClient({ orders, margins }: Props) {
+export default function InvoicesPageClient({ token }: Props) {
+  const { data: orders = [] } = useERP<SalesOrder[]>("/sales-orders", token);
+  const { data: margins = [] } = useERP<OrderMarginTotal[]>("/sales-orders/margins", token);
   const [showForm, setShowForm] = useState(false);
   const [editOrderId, setEditOrderId] = useState<number | null>(null);
 

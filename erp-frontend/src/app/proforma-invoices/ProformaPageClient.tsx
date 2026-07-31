@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, FileText, Clock, CheckCircle, XCircle, Send, Banknote, Package } from "lucide-react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ProformaInvoice, ProformaStatus, api } from "@/lib/api";
+import { useERP } from "@/lib/useERP";
 import { getClientToken } from "@/lib/clientAuth";
 import { Card } from "@/components/ui";
 import ProformaForm from "./ProformaForm";
 
-type Props = { invoices: ProformaInvoice[] };
+type Props = { token: string };
 
 const STATUS_META: Record<ProformaStatus, { label: string; cls: string; icon: React.ReactNode }> = {
   draft:        { label: "Draft",        cls: "bg-slate-100 text-slate-600 border-slate-200", icon: <Clock size={11} /> },
@@ -39,21 +39,18 @@ function fmtAmt(s: string) {
   return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function ProformaPageClient({ invoices: initial }: Props) {
-  const router = useRouter();
+export default function ProformaPageClient({ token }: Props) {
+  const { data: invoices = [], mutate } = useERP<ProformaInvoice[]>("/proforma-invoices", token);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
-  const [invoices, setInvoices] = useState(initial);
   const [transitioning, setTransitioning] = useState<number | null>(null);
-
-  useEffect(() => { setInvoices(initial); }, [initial]);
 
   const handleTransition = async (id: number, next: ProformaStatus) => {
     setTransitioning(id);
     try {
-      const token = getClientToken();
-      await api.post(`/proforma-invoices/${id}/status`, { status: next }, token);
-      router.refresh();
+      const tok = getClientToken();
+      await api.post(`/proforma-invoices/${id}/status`, { status: next }, tok);
+      mutate();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to update status");
     } finally {
@@ -64,9 +61,9 @@ export default function ProformaPageClient({ invoices: initial }: Props) {
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this proforma invoice?")) return;
     try {
-      const token = getClientToken();
-      await api.delete(`/proforma-invoices/${id}`, token);
-      setInvoices(prev => prev.filter(p => p.id !== id));
+      const tok = getClientToken();
+      await api.delete(`/proforma-invoices/${id}`, tok);
+      mutate();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to delete");
     }
@@ -92,7 +89,7 @@ export default function ProformaPageClient({ invoices: initial }: Props) {
       {(showForm || editId !== null) && (
         <ProformaForm
           editId={editId ?? undefined}
-          onClose={() => { setShowForm(false); setEditId(null); router.refresh(); }}
+          onClose={() => { setShowForm(false); setEditId(null); mutate(); }}
         />
       )}
 

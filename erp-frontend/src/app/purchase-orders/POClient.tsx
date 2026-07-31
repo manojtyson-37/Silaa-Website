@@ -5,19 +5,19 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ExternalLink, Trash2 } from "lucide-react";
 import { PurchaseOrder, Supplier, api, ApiError } from "@/lib/api";
-import { StatusPill, Card } from "@/components/ui";
+import { useERP } from "@/lib/useERP";
+import { PageHeader, StatusPill, Card } from "@/components/ui";
 import { getClientToken } from "@/lib/clientAuth";
 import ApproveButton from "./ApproveButton";
 import EditPOForm from "./EditPOForm";
 
 type SupplierBlocker = { supplierId: number; poIds: number[]; fabricLotIds: number[]; accessoryLotIds: number[] };
 
-type Props = {
-  orders: PurchaseOrder[];
-  suppliers: Supplier[];
-};
+type Props = { token: string };
 
-export default function POClient({ orders, suppliers }: Props) {
+export default function POClient({ token }: Props) {
+  const { data: orders = [] } = useERP<PurchaseOrder[]>("/purchase-orders", token);
+  const { data: suppliers = [] } = useERP<Supplier[]>("/suppliers", token);
   const router = useRouter();
   const [supplierBlocker, setSupplierBlocker] = useState<SupplierBlocker | null>(null);
   const supplierName = (id: number) => suppliers.find((s) => s.id === id)?.name ?? `#${id}`;
@@ -46,6 +46,7 @@ export default function POClient({ orders, suppliers }: Props) {
 
   return (
     <div>
+      <PageHeader title="Purchase Orders" subtitle={`${orders.length} order${orders.length === 1 ? "" : "s"}`} />
       {/* Purchase Orders */}
       {orders.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground text-sm mt-6">No purchase orders yet.</Card>

@@ -1,13 +1,15 @@
 "use client";
 
 import { Customer } from "@/lib/api";
-import { Input, Card, Table, Th } from "@/components/ui";
+import { useERP } from "@/lib/useERP";
+import { PageHeader, Input, Card, Table, Th } from "@/components/ui";
 import { useState, Fragment } from "react";
-import { ShoppingCart, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import AddCustomerForm from "./AddCustomerForm";
 import BulkUploadCustomers from "./BulkUploadCustomers";
 
-export default function CustomersClient({ customers }: { customers: Customer[] }) {
+export default function CustomersClient({ token }: { token: string }) {
+  const { data: customers = [] } = useERP<Customer[]>("/customers", token);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -19,6 +21,10 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
 
   return (
     <div className="space-y-4">
+      <PageHeader
+        title="Customers & CRM"
+        subtitle={`${customers.length} customer${customers.length === 1 ? "" : "s"} tracked`}
+      />
       <div className="flex justify-between items-center gap-4">
         <div className="relative w-full max-w-sm">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { api, Supplier } from "@/lib/api";
+import { useERP } from "@/lib/useERP";
 import { getClientToken } from "@/lib/clientAuth";
 import { Button, Card, Input, Select } from "@/components/ui";
 
@@ -23,11 +24,19 @@ const emptyLine = (): Line => ({
   agreed_price: "",
 });
 
-export default function NewPOForm({ suppliers }: { suppliers: Supplier[] }) {
+export default function NewPOForm({ token }: { token: string }) {
+  const { data: suppliers = [] } = useERP<Supplier[]>("/suppliers", token);
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [supplierId, setSupplierId] = useState(suppliers[0]?.id?.toString() ?? "");
+  const [supplierId, setSupplierId] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
+
+  // Set first supplier as default once suppliers load
+  useEffect(() => {
+    if (suppliers.length > 0 && !supplierId) {
+      setSupplierId(suppliers[0].id.toString());
+    }
+  }, [suppliers, supplierId]);
   const [error, setError] = useState<string | null>(null);
 
   const updateLine = (i: number, patch: Partial<Line>) =>

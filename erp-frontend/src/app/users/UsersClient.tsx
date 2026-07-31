@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Plus, Edit2 } from "lucide-react";
 import { Button, Card, Input } from "@/components/ui";
 import { api, User } from "@/lib/api";
+import { useERP } from "@/lib/useERP";
 
-export default function UsersClient({ initialUsers, token }: { initialUsers: User[]; token: string }) {
-  const router = useRouter();
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  
+export default function UsersClient({ token }: { token: string }) {
+  const { data: users = [], mutate } = useERP<User[]>("/users", token);
+
   const [isAdding, setIsAdding] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -20,18 +19,14 @@ export default function UsersClient({ initialUsers, token }: { initialUsers: Use
   const [editRole, setEditRole] = useState("viewer");
   const [editActive, setEditActive] = useState(true);
 
-  const bust = () => fetch("/api/revalidate", { method: "POST", body: JSON.stringify({ tag: "users" }), headers: { "Content-Type": "application/json" } });
-
   const handleAddUser = async () => {
     try {
-      const u = await api.post<User>("/users", { username: newUsername, password: newPassword, role: newRole }, token);
-      setUsers([...users, u]);
+      await api.post<User>("/users", { username: newUsername, password: newPassword, role: newRole }, token);
       setIsAdding(false);
       setNewUsername("");
       setNewPassword("");
       setNewRole("viewer");
-      bust();
-      router.refresh();
+      mutate();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : String(err));
     }
@@ -39,16 +34,14 @@ export default function UsersClient({ initialUsers, token }: { initialUsers: Use
 
   const handleUpdateUser = async (id: number) => {
     try {
-      const u = await api.patch<User>(`/users/${id}`, {
+      await api.patch<User>(`/users/${id}`, {
         password: editPassword || undefined,
         role: editRole,
-        is_active: editActive
+        is_active: editActive,
       }, token);
-      setUsers(users.map(user => user.id === id ? u : user));
       setEditingId(null);
       setEditPassword("");
-      bust();
-      router.refresh();
+      mutate();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : String(err));
     }
@@ -112,7 +105,7 @@ export default function UsersClient({ initialUsers, token }: { initialUsers: Use
                 <Edit2 size={16} />
               </button>
             </div>
-            
+
             {editingId === user.id && (
               <div className="flex flex-col gap-3 mt-2 border-t border-border pt-3">
                 <Input type="password" placeholder="New Password (optional)" value={editPassword} onChange={e => setEditPassword(e.target.value)} />

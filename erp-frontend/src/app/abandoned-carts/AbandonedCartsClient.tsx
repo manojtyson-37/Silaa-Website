@@ -1,8 +1,15 @@
 "use client";
 
+import { Customer } from "@/lib/api";
+import { useERP } from "@/lib/useERP";
 import { Card, Table, Th } from "@/components/ui";
 
-export default function AbandonedCartsClient({ carts }: { carts: any[] }) {
+export default function AbandonedCartsClient({ token }: { token: string }) {
+  const { data: customers = [] } = useERP<Customer[]>("/customers", token);
+  const carts = customers
+    .flatMap((c: any) => (c.abandoned_carts || []).map((cart: any) => ({ ...cart, customer: c })))
+    .sort((a: any, b: any) => new Date(b.drop_off_time).getTime() - new Date(a.drop_off_time).getTime());
+
   return (
     <Card>
       <div className="overflow-x-auto">
@@ -49,7 +56,7 @@ export default function AbandonedCartsClient({ carts }: { carts: any[] }) {
                           <ul className="list-disc pl-4 space-y-1 text-xs">
                             {cart.items.map((item: any, i: number) => (
                               <li key={i}>
-                                {item.qty}x {item.name || `Variant #${item.variantId}`} 
+                                {item.qty}x {item.name || `Variant #${item.variantId}`}
                                 <span className="text-muted-foreground ml-1">
                                   {item.size ? `[${item.size}]` : ""} {item.color ? `(${item.color})` : ""} - ₹{item.price || 0}
                                 </span>

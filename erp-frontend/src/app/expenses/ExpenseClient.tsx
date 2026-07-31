@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   ChevronLeft, ChevronRight, Download, Paperclip, Pencil,
   Plus, RefreshCw, Settings, Trash2, X,
 } from "lucide-react";
 import { api, CategoryBudget, CompanySetting, Expense, ExpenseCategory, FabricItem, Supplier, ProcurementItemCreate } from "@/lib/api";
+import { useERP } from "@/lib/useERP";
 import { getClientToken } from "@/lib/clientAuth";
 import { Button, Card, Input, Select } from "@/components/ui";
 import CategoryEditor, { CategoryDraft } from "./CategoryEditor";
@@ -22,14 +23,7 @@ const CURRENCIES = [
   { code: "JPY", label: "¥ Japanese Yen" },
 ];
 
-type Props = {
-  categories: ExpenseCategory[];
-  expenses: Expense[];
-  budgets: CategoryBudget[];
-  settings: CompanySetting[];
-  fabricItems: FabricItem[];
-  suppliers: Supplier[];
-};
+type Props = { token: string };
 
 function fmtYM(ym: string) {
   const [y, m] = ym.split("-").map(Number);
@@ -112,38 +106,40 @@ const BLANK_FORM = () => ({
   procurement_items: [] as ProcurementFormItem[],
 });
 
-export default function ExpenseClient({
-  categories: initCats,
-  expenses: initExp,
-  budgets: initBudgets,
-  settings: initSettings,
-  fabricItems,
-  suppliers,
-}: Props) {
-  const [categories, setCategories] = useState(initCats);
-  const [expenses, setExpenses] = useState(initExp);
-  const [budgets, setBudgets] = useState(initBudgets);
-  const [currency, setCurrency] = useState(
-    () => initSettings.find(s => s.key === "currency")?.value ?? "INR"
-  );
-  const [gstin, setGstin] = useState(
-    () => initSettings.find(s => s.key === "gstin")?.value ?? ""
-  );
-  const [businessAddress, setBusinessAddress] = useState(
-    () => initSettings.find(s => s.key === "business_address")?.value ?? ""
-  );
-  const [bankName, setBankName] = useState(
-    () => initSettings.find(s => s.key === "bank_name")?.value ?? ""
-  );
-  const [bankAccount, setBankAccount] = useState(
-    () => initSettings.find(s => s.key === "bank_account")?.value ?? ""
-  );
-  const [bankIfsc, setBankIfsc] = useState(
-    () => initSettings.find(s => s.key === "bank_ifsc")?.value ?? ""
-  );
-  const [invoiceTerms, setInvoiceTerms] = useState(
-    () => initSettings.find(s => s.key === "invoice_terms")?.value ?? ""
-  );
+export default function ExpenseClient({ token }: Props) {
+  // SWR data
+  const { data: categoriesData = [] } = useERP<ExpenseCategory[]>("/expense-categories", token);
+  const { data: expensesData = [] } = useERP<Expense[]>("/expenses", token);
+  const { data: budgetsData = [] } = useERP<CategoryBudget[]>("/expense-category-budgets", token);
+  const { data: settingsData = [] } = useERP<CompanySetting[]>("/company-settings", token);
+  const { data: fabricItems = [] } = useERP<FabricItem[]>("/fabric-items", token);
+  const { data: suppliers = [] } = useERP<Supplier[]>("/suppliers", token);
+
+  // Local mutable state — synced from SWR so mutations are reflected instantly
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [budgets, setBudgets] = useState<CategoryBudget[]>([]);
+  const [currency, setCurrency] = useState("INR");
+  const [gstin, setGstin] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [bankIfsc, setBankIfsc] = useState("");
+  const [invoiceTerms, setInvoiceTerms] = useState("");
+
+  useEffect(() => { setCategories(categoriesData); }, [categoriesData]);
+  useEffect(() => { setExpenses(expensesData); }, [expensesData]);
+  useEffect(() => { setBudgets(budgetsData); }, [budgetsData]);
+  useEffect(() => {
+    setCurrency(settingsData.find(s => s.key === "currency")?.value ?? "INR");
+    setGstin(settingsData.find(s => s.key === "gstin")?.value ?? "");
+    setBusinessAddress(settingsData.find(s => s.key === "business_address")?.value ?? "");
+    setBankName(settingsData.find(s => s.key === "bank_name")?.value ?? "");
+    setBankAccount(settingsData.find(s => s.key === "bank_account")?.value ?? "");
+    setBankIfsc(settingsData.find(s => s.key === "bank_ifsc")?.value ?? "");
+    setInvoiceTerms(settingsData.find(s => s.key === "invoice_terms")?.value ?? "");
+  }, [settingsData]);
+
   const sym = CURRENCY_SYMBOLS[currency] ?? currency;
 
   const [selectedMonth, setSelectedMonth] = useState(currentYM);
