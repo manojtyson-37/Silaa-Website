@@ -1,3 +1,14 @@
+export class ApiError extends Error {
+  readonly status: number;
+  readonly detail: unknown;
+  constructor(status: number, msg: string, detail: unknown) {
+    super(msg);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 const getBaseUrl = () => {
   if (typeof window === "undefined") {
     // Server-side: must use an absolute URL — rewrites don't apply to internal fetch calls.
@@ -31,8 +42,13 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
   if (!res.ok) {
     const body = await res.text();
     let msg = body;
-    try { const j = JSON.parse(body); if (typeof j.detail === "string") msg = j.detail; } catch {}
-    throw new Error(`${res.status} ${path}: ${msg}`);
+    let detail: unknown;
+    try {
+      const j = JSON.parse(body);
+      if (typeof j.detail === "string") msg = j.detail;
+      else if (j.detail !== undefined) { detail = j.detail; msg = (j.detail as { message?: string }).message ?? body; }
+    } catch {}
+    throw new ApiError(res.status, `${res.status} ${path}: ${msg}`, detail);
   }
   if (res.status === 204) return undefined as T;
   return res.json();
