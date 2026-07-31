@@ -1,5 +1,3 @@
-import { promises as fs } from "fs";
-import path from "path";
 import crypto from "crypto";
 import { variantById, resolveDiscount, price as productPrice } from "@/lib/catalog";
 import type { Campaign } from "@/lib/catalog";
@@ -27,8 +25,7 @@ export type OrderRecord = {
   payment?: { razorpayOrderId: string; razorpayPaymentId: string };
 };
 
-const ORDERS_DIR = path.join(process.cwd(), "orders");
-const ORDERS_FILE = path.join(ORDERS_DIR, "orders.jsonl");
+const ERP_BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://silaa-website.vercel.app";
 
 export function validateCustomer(c: unknown): Customer | null {
   if (!c || typeof c !== "object") return null;
@@ -124,30 +121,30 @@ export async function priceItems(items: unknown, discountCode?: string):
   return { lines, amountPaise, campaign: campaignRecord };
 }
 
-const PENDING_DIR = path.join(ORDERS_DIR, "pending");
-
-function pendingPath(razorpayOrderId: string): string {
-  // razorpay ids are alphanumeric with underscores; sanitize defensively
-  return path.join(PENDING_DIR, razorpayOrderId.replace(/[^A-Za-z0-9_]/g, "") + ".json");
-}
-
-/** Stash cart + customer at order-creation time so /api/verify can finalize. */
+/** Stash cart + customer at order-creation time so /api/verify can finalize.
+ *  Uses ERP DB (Supabase) instead of filesystem so Razorpay callbacks land on any serverless instance. */
 export async function savePending(
   razorpayOrderId: string,
   data: { customer: Customer; items: OrderRecord["items"]; amount: number; campaign?: OrderRecord["campaign"] | null }
 ): Promise<void> {
-  await fs.mkdir(PENDING_DIR, { recursive: true });
-  await fs.writeFile(pendingPath(razorpayOrderId), JSON.stringify(data), "utf8");
+  const res = await fetch(`${ERP_BASE}/api/erp/pending-orders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ razorpay_order_id: razorpayOrderId, payload: data }),
+  });
+  if (!res.ok) throw new Error(`savePending failed: ${res.status}`);
 }
 
 export async function takePending(
   razorpayOrderId: string
 ): Promise<{ customer: Customer; items: OrderRecord["items"]; amount: number; campaign?: OrderRecord["campaign"] | null } | null> {
   try {
-    const p = pendingPath(razorpayOrderId);
-    const data = JSON.parse(await fs.readFile(p, "utf8"));
-    await fs.unlink(p).catch(() => {});
-    return data;
+    const res = await fetch(`${ERP_BASE}/api/erp/pending-orders/${encodeURIComponent(razorpayOrderId)}`, {
+      method: "DELETE",
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`takePending failed: ${res.status}`);
+    return await res.json();
   } catch {
     return null;
   }
@@ -159,13 +156,6 @@ export async function saveOrder(
   order: Omit<OrderRecord, "ref" | "createdAt">
 ): Promise<string> {
   const ref = "SILA-" + crypto.randomBytes(4).toString("hex").toUpperCase();
-  const record: OrderRecord = {
-    ref,
-    createdAt: new Date().toISOString(),
-    ...order,
-  };
-  await fs.mkdir(ORDERS_DIR, { recursive: true });
-  await fs.appendFile(ORDERS_FILE, JSON.stringify(record) + "\n", "utf8");
 
   // Handle auto-disabling or usage increments for campaigns
   if (order.campaign && process.env.SANITY_API_WRITE_TOKEN) {

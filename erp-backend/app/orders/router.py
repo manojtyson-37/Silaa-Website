@@ -1,4 +1,5 @@
-from datetime import datetime
+import json
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_default_warehouse_id
 from app.db import get_db
 from app.orders.invoice import generate_invoice_pdf
-from app.orders.models import SalesOrder, SalesOrderLine, SalesOrderStatus, SalesOrderResolution
+from app.orders.models import SalesOrder, SalesOrderLine, SalesOrderStatus, SalesOrderResolution, PendingOrder
 from app.orders.service import InsufficientStockError, cancel_order, create_sales_order, fulfill_order, return_order, replace_order, restore_sanity_campaign
 from app.style_variant.models import StyleVariant
 
@@ -385,3 +386,37 @@ def margin(order_id: int, db: Session = Depends(get_db)):
             "margin": line_margin,
         })
     return {"order_id": order_id, "lines": line_margins, "total_margin": total_margin}
+
+
+# ── Pending order endpoints (unauthenticated — stores ephemeral cart data only) ──
+
+class PendingOrderIn(BaseModel):
+    razorpay_order_id: str
+    payload: dict
+
+
+@router.post("/pending-orders", status_code=201)
+def create_pending_order(body: PendingOrderIn, db: Session = Depends(get_db)):
+    if not body.razorpay_order_id.startswith("order_"):
+        raise HTTPException(400, "Invalid razorpay_order_id format")
+    existing = db.get(PendingOrder, body.razorpay_order_id)
+    if existing:
+        existing.payload = json.dumps(body.payload)
+    else:
+        db.add(PendingOrder(razorpay_order_id=body.razorpay_order_id, payload=json.dumps(body.payload)))
+    # Prune orders older than 2 hours to prevent table bloat
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=2)
+    db.query(PendingOrder).filter(PendingOrder.created_at < cutoff).delete()
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/pending-orders/{razorpay_order_id}")
+def take_pending_order(razorpay_order_id: str, db: Session = Depends(get_db)):
+    record = db.get(PendingOrder, razorpay_order_id)
+    if record is None:
+        raise HTTPException(404, "Pending order not found")
+    payload = json.loads(record.payload)
+    db.delete(record)
+    db.commit()
+    return payload

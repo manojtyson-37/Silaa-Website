@@ -12,7 +12,15 @@ import json
 import os
 import time
 
-SECRET_KEY = os.environ.get("AUTH_SECRET_KEY", "fallback_secret_please_change_in_production")
+_FALLBACK_KEY = "fallback_secret_please_change_in_production"
+SECRET_KEY = os.environ.get("AUTH_SECRET_KEY", _FALLBACK_KEY)
+if SECRET_KEY == _FALLBACK_KEY:
+    import warnings
+    warnings.warn(
+        "AUTH_SECRET_KEY is not set — using public fallback. "
+        "All tokens are forgeable. Set AUTH_SECRET_KEY in Vercel env vars immediately.",
+        stacklevel=1,
+    )
 TOKEN_TTL_SECONDS = 60 * 60 * 12  # 12h
 
 def hash_password(password: str) -> str:
