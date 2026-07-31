@@ -42,15 +42,13 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
             <thead>
               <tr>
                 <Th>Name</Th>
-                <Th>Email</Th>
                 <Th>Phone</Th>
-                <Th>Address</Th>
               </tr>
             </thead>
             <tbody>
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={2} className="py-8 text-center text-muted-foreground">
                     No customers found matching your search.
                   </td>
                 </tr>
@@ -63,27 +61,26 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
                     >
                       <td className="py-3 px-4 text-sm font-medium">{customer.name}</td>
                       <td className="py-3 px-4 text-sm">
-                        {customer.email || "—"}
-                      </td>
-                      <td className="py-3 px-4 text-sm">
                         {customer.phone || "—"}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground max-w-xs truncate">
-                        {customer.address || "—"}
                       </td>
                     </tr>
                     {expandedId === customer.id && (
                       <tr className="bg-muted/10">
-                        <td colSpan={4} className="p-4 border-b border-border">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground mb-1 font-medium">Customer Details</p>
-                              <p><strong>Added On:</strong> {new Date(customer.created_at || "").toLocaleDateString()}</p>
-                              <p><strong>Total Orders:</strong> 0 (WIP)</p>
+                        <td colSpan={2} className="p-4 border-b border-border">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-muted-foreground mb-1 text-xs font-semibold uppercase tracking-wider">Customer Info</p>
+                                <p><strong>Email:</strong> {customer.email || "No email provided"}</p>
+                                <p><strong>Added On:</strong> {new Date(customer.created_at || "").toLocaleDateString()}</p>
+                                <p><strong>Total Orders:</strong> 0 (WIP)</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-muted-foreground mb-1 font-medium">Full Address</p>
-                              <p className="whitespace-pre-wrap">{customer.address || "No address on file"}</p>
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-muted-foreground mb-1 text-xs font-semibold uppercase tracking-wider">Address Details</p>
+                                <p className="whitespace-pre-wrap leading-relaxed">{customer.address || "No address on file"}</p>
+                              </div>
                             </div>
                           </div>
                         </td>
