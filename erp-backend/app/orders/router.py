@@ -26,6 +26,8 @@ class SalesOrderLineIn(BaseModel):
     gst_percent: Decimal = Field(Decimal("5"), ge=0, le=100)
 
 
+PAYMENT_MODES = {"Cash", "UPI", "Card", "Bank Transfer", "Credit"}
+
 class SalesOrderIn(BaseModel):
     customer_name: str
     customer_phone: Optional[str] = None
@@ -33,6 +35,7 @@ class SalesOrderIn(BaseModel):
     customer_state: Optional[str] = None
     category: Optional[str] = None
     campaign_id: Optional[str] = None
+    payment_mode: Optional[str] = None
     lines: list[SalesOrderLineIn]
     created_by: str
 
@@ -55,6 +58,7 @@ class SalesOrderOut(BaseModel):
     customer_state: Optional[str]
     category: Optional[str]
     invoice_number: Optional[str]
+    payment_mode: Optional[str] = None
     status: str
     created_at: Optional[datetime] = None
     total_amount: Optional[str] = None
@@ -70,6 +74,7 @@ class SalesOrderUpdate(BaseModel):
     customer_address: Optional[str] = None
     customer_state: Optional[str] = None
     category: Optional[str] = None
+    payment_mode: Optional[str] = None
     lines: Optional[list[SalesOrderLineIn]] = None
 
 
@@ -85,6 +90,9 @@ def create_order(payload: SalesOrderIn, db: Session = Depends(get_db)):
         lines=[l.model_dump() for l in payload.lines],
         created_by=payload.created_by,
     )
+    if payload.payment_mode and payload.payment_mode in PAYMENT_MODES:
+        order.payment_mode = payload.payment_mode
+        db.commit()
     return order
 
 

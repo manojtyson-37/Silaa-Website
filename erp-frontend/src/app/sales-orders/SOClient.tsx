@@ -144,7 +144,7 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground max-w-sm truncate">
-                    Category: {order.category || "—"}
+                    Category: {order.category || "—"}{order.payment_mode ? ` · ${order.payment_mode}` : ""}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Date: {fmtDate(order.created_at)} · Total: <span className="font-medium text-foreground">{fmtAmount(order.total_amount)}</span>

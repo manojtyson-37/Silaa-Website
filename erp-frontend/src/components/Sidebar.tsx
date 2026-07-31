@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Boxes, Factory, LayoutGrid, LogOut, Shirt, ClipboardList, BarChart3, Receipt, Users, ScrollText, Scissors, ShoppingCart } from "lucide-react";
+import { Boxes, Factory, LayoutGrid, LogOut, Shirt, ClipboardList, BarChart3, Receipt, Users, ScrollText, Scissors, ShoppingCart, FileText } from "lucide-react";
 import { clearClientToken } from "@/lib/clientAuth";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutGrid };
@@ -42,7 +42,8 @@ const SECTIONS: NavSection[] = [
   {
     title: "Finance",
     items: [
-      { href: "/sales-orders", label: "Sales Orders", icon: ScrollText },
+      { href: "/sales-orders", label: "Retail Sales Invoice", icon: ScrollText },
+      { href: "/proforma-invoices", label: "Proforma Invoices", icon: FileText },
       { href: "/expenses", label: "Expenses", icon: Receipt },
       { href: "/reports", label: "Reports", icon: BarChart3 },
     ],

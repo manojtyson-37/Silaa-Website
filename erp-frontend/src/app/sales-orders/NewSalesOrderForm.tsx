@@ -33,6 +33,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerState, setCustomerState] = useState("");
   const [category, setCategory] = useState("B2C");
+  const [paymentMode, setPaymentMode] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +66,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
                  setCustomerAddress(orderData.customer_address || "");
                  setCustomerState(orderData.customer_state || "");
                  setCategory(orderData.category || "B2C");
+                 setPaymentMode(orderData.payment_mode || "");
                  if (orderData.lines && orderData.lines.length > 0) {
                      const loadedLines = orderData.lines.map((l: any) => {
                          let sId = "";
@@ -124,6 +126,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
         customer_address: customerAddress || null,
         customer_state: customerState || null,
         category: category,
+        payment_mode: paymentMode || null,
         lines: validLines.map((l) => ({
           variant_id: Number(l.variant_id),
           qty: l.qty,
@@ -151,7 +154,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
   // Close form only after refresh finishes
   useEffect(() => {
     if (saving && !isPending && !error) {
-      setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCustomerState("");
+      setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCustomerState(""); setPaymentMode("");
       setLines([emptyLine()]);
       setOpen(false);
       onClose?.();
@@ -194,6 +197,14 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="B2C">B2C</option>
               <option value="B2B">B2B</option>
+            </Select>
+            <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
+              <option value="">Payment mode (optional)</option>
+              <option value="Cash">Cash</option>
+              <option value="UPI">UPI</option>
+              <option value="Card">Card</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="Credit">Credit</option>
             </Select>
           </div>
         </div>

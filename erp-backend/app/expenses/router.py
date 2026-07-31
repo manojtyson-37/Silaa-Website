@@ -143,7 +143,7 @@ def list_settings(db: Session = Depends(get_db)):
 
 _ALLOWED_SETTING_KEYS = {
     "currency", "gstin", "business_address",
-    "bank_name", "bank_account", "bank_ifsc", "invoice_terms",
+    "bank_name", "bank_account", "bank_ifsc", "bank_upi", "invoice_terms", "proforma_terms",
 }
 
 

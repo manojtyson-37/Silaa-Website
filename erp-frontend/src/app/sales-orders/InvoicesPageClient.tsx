@@ -21,8 +21,8 @@ export default function InvoicesPageClient({ orders, margins }: Props) {
       {!showForm && !editOrderId && (
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Invoices</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Create, track and print GST invoices</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Retail Sales Invoice</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Create, track and print GST invoices for retail sales</p>
           </div>
           <button
             onClick={() => setShowForm(true)}

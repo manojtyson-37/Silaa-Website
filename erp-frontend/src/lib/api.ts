@@ -226,6 +226,7 @@ export type SalesOrder = {
   customer_state: string | null;
   category: string | null;
   invoice_number: string | null;
+  payment_mode: string | null;
   status: string;
   created_at: string | null;
   total_amount: string | null;
@@ -234,6 +235,40 @@ export type SalesOrder = {
 };
 export type SalesOrderLine = { id: number; variant_id: number; qty: string; unit_price: string; gst_percent: string };
 export type SalesOrderDetail = SalesOrder & { lines: SalesOrderLine[] };
+
+export type ProformaStatus = "draft" | "sent" | "advance_paid" | "balance_paid" | "completed" | "cancelled";
+
+export type ProformaLine = {
+  id: number;
+  style_name: string;
+  description: string | null;
+  photo_url: string | null;
+  unit_price: string;
+  sizes: Record<string, number>;
+  total_qty: string;
+  line_total: string;
+};
+
+export type ProformaInvoice = {
+  id: number;
+  invoice_number: string | null;
+  customer_name: string;
+  customer_phone: string | null;
+  customer_email: string | null;
+  customer_address: string | null;
+  customer_gstin: string | null;
+  customer_state: string | null;
+  delivery_date: string | null;
+  description: string | null;
+  terms_and_conditions: string | null;
+  advance_percent: string;
+  status: ProformaStatus;
+  created_at: string;
+  lines: ProformaLine[];
+  total_amount: string;
+  advance_amount: string;
+  balance_amount: string;
+};
 
 export const INDIAN_STATES = [
   "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam",

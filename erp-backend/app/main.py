@@ -22,6 +22,7 @@ from app.orders import models as orders_models  # noqa: F401
 from app.expenses import models as expenses_models  # noqa: F401
 from app.auth import models as auth_models  # noqa: F401
 from app.customers import models as customers_models  # noqa: F401
+from app.proforma import models as proforma_models  # noqa: F401
 
 from app import wiring
 from app.procurement.router import router as procurement_router
@@ -39,6 +40,7 @@ from app.expenses.router import router as expenses_router
 from app.upload.router import router as upload_router
 from app.users.router import router as users_router
 from app.customers.router import router as customers_router
+from app.proforma.router import router as proforma_router
 
 from contextlib import asynccontextmanager
 
@@ -120,6 +122,7 @@ app.include_router(upload_router, dependencies=_protected)
 from app.customers.router import public_router as customers_public_router
 app.include_router(customers_public_router)
 app.include_router(customers_router, dependencies=_protected)
+app.include_router(proforma_router, dependencies=_protected)
 app.include_router(users_router) # dependencies are internal to users router
 
 
