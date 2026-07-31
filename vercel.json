@@ -3,7 +3,8 @@
   "rewrites": [{"source": "/api/erp/(.*)", "destination": "/api/index"}],
   "functions": {
     "api/index.py": {
-      "includeFiles": "erp-backend/**"
+      "includeFiles": "erp-backend/**",
+      "maxDuration": 60
     }
   }
 }

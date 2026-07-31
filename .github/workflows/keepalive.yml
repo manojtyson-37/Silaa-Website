@@ -1,0 +1,18 @@
+name: Keep ERP backend warm
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://silaa-website.vercel.app/api/erp/health)
+          echo "Health check status: $status"
+          if [ "$status" != "200" ]; then
+            echo "Warning: backend returned $status"
+          fi
