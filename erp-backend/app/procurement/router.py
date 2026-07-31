@@ -79,7 +79,7 @@ def list_suppliers(db: Session = Depends(get_db)):
 @router.delete("/suppliers/{supplier_id}", status_code=204)
 def delete_supplier(supplier_id: int, db: Session = Depends(get_db)):
     from app.fabric_inventory.models import FabricLot
-    from app.accessory_inventory.models import AccessoryLot
+    from app.accessory_inventory.models import AccessoryLedgerEntry
 
     supplier = db.get(Supplier, supplier_id)
     if supplier is None:
@@ -87,7 +87,7 @@ def delete_supplier(supplier_id: int, db: Session = Depends(get_db)):
 
     po_ids = [po.id for po in db.query(PurchaseOrder).filter_by(supplier_id=supplier_id).all()]
     fabric_lot_ids = [fl.id for fl in db.query(FabricLot).filter_by(supplier_id=supplier_id).all()]
-    accessory_lot_ids = [al.id for al in db.query(AccessoryLot).filter_by(supplier_id=supplier_id).all()]
+    accessory_lot_ids = [al.id for al in db.query(AccessoryLedgerEntry).filter_by(supplier_id=supplier_id).all()]
 
     if po_ids or fabric_lot_ids or accessory_lot_ids:
         raise HTTPException(409, detail={

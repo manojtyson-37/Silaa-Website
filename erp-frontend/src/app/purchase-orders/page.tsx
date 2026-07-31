@@ -1,5 +1,5 @@
 import { api, PurchaseOrder, Supplier } from "@/lib/api";
-import { Card, PageHeader } from "@/components/ui";
+import { PageHeader } from "@/components/ui";
 import NewPOForm from "./NewPOForm";
 import POClient from "./POClient";
 import { requireAuth } from "@/lib/serverAuth";
@@ -19,11 +19,7 @@ export default async function PurchaseOrdersPage() {
 
       <NewPOForm suppliers={suppliers} />
 
-      {orders.length === 0 ? (
-        <Card className="p-8 text-center text-muted-foreground text-sm">No purchase orders yet.</Card>
-      ) : (
-        <POClient orders={orders} suppliers={suppliers} />
-      )}
+      <POClient orders={orders} suppliers={suppliers} />
     </main>
   );
 }
