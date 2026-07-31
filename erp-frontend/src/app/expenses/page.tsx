@@ -1,6 +1,8 @@
 import { requireAuth } from "@/lib/serverAuth";
 import { PageHeader } from "@/components/ui";
-import ExpenseClient from "./ExpenseClient";
+import dynamic from "next/dynamic";
+
+const ExpenseClient = dynamic(() => import("./ExpenseClient"), { ssr: false });
 
 export default async function ExpensesPage() {
   const token = await requireAuth();
