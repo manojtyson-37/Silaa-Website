@@ -6,7 +6,7 @@ import { api, ProformaInvoice, INDIAN_STATES } from "@/lib/api";
 import { getClientToken } from "@/lib/clientAuth";
 import { Button, Input, Select } from "@/components/ui";
 
-const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
+const SIZES = ["S", "M", "L", "XL", "XXL"];
 
 type SizeMap = Record<string, number>;
 

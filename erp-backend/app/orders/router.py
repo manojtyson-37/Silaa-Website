@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import Response
+from typing import Literal
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -26,7 +27,7 @@ class SalesOrderLineIn(BaseModel):
     gst_percent: Decimal = Field(Decimal("5"), ge=0, le=100)
 
 
-PAYMENT_MODES = {"Cash", "UPI", "Card", "Bank Transfer", "Credit"}
+PaymentMode = Optional[Literal["Cash", "UPI", "Card", "Bank Transfer", "Credit"]]
 
 class SalesOrderIn(BaseModel):
     customer_name: str
@@ -35,7 +36,7 @@ class SalesOrderIn(BaseModel):
     customer_state: Optional[str] = None
     category: Optional[str] = None
     campaign_id: Optional[str] = None
-    payment_mode: Optional[str] = None
+    payment_mode: PaymentMode = None
     lines: list[SalesOrderLineIn]
     created_by: str
 
@@ -74,26 +75,23 @@ class SalesOrderUpdate(BaseModel):
     customer_address: Optional[str] = None
     customer_state: Optional[str] = None
     category: Optional[str] = None
-    payment_mode: Optional[str] = None
+    payment_mode: PaymentMode = None
     lines: Optional[list[SalesOrderLineIn]] = None
 
 
 @router.post("/sales-orders", response_model=SalesOrderOut)
 def create_order(payload: SalesOrderIn, db: Session = Depends(get_db)):
-    order = create_sales_order(
+    return create_sales_order(
         db,
         customer_name=payload.customer_name,
         customer_phone=payload.customer_phone,
         customer_address=payload.customer_address,
         customer_state=payload.customer_state,
         campaign_id=payload.campaign_id,
+        payment_mode=payload.payment_mode,
         lines=[l.model_dump() for l in payload.lines],
         created_by=payload.created_by,
     )
-    if payload.payment_mode and payload.payment_mode in PAYMENT_MODES:
-        order.payment_mode = payload.payment_mode
-        db.commit()
-    return order
 
 
 @router.get("/sales-orders", response_model=list[SalesOrderOut])
@@ -194,6 +192,7 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
         "customer_address": order.customer_address,
         "customer_state": order.customer_state,
         "invoice_number": order.invoice_number,
+        "payment_mode": order.payment_mode,
         "status": order.status,
         "category": order.category,
         "created_at": order.created_at,

@@ -73,6 +73,7 @@ def create_sales_order(
     customer_state: str | None = None,
     category: str | None = None,
     campaign_id: str | None = None,
+    payment_mode: str | None = None,
 ) -> SalesOrder:
     order = SalesOrder(
         customer_name=customer_name,
@@ -81,6 +82,7 @@ def create_sales_order(
         customer_state=customer_state,
         category=category,
         campaign_id=campaign_id,
+        payment_mode=payment_mode,
         status=SalesOrderStatus.DRAFT.value,
     )
     session.add(order)

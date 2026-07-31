@@ -1,13 +1,12 @@
 """add payment_mode to sales_order and create proforma_invoice tables
 
 Revision ID: h6i7j8k9l0m1
-Revises: g5h6i7j8k9l0
+Revises: bd93c6cd7822
 Create Date: 2026-08-01
 
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = 'h6i7j8k9l0m1'
 down_revision = 'bd93c6cd7822'

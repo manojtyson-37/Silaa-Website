@@ -4,10 +4,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select, func as sqlfunc
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.expenses.models import CompanySetting
 from app.proforma.models import ProformaInvoice, ProformaInvoiceLine, ProformaStatus
 
 router = APIRouter(tags=["proforma"])
@@ -109,13 +110,6 @@ class StatusTransitionIn(BaseModel):
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-def _next_invoice_number(db: Session) -> str:
-    row = db.execute(
-        select(sqlfunc.count()).select_from(ProformaInvoice)
-    ).scalar()
-    return f"PI-{(row or 0) + 1:04d}"
-
-
 def _compute_line(line: ProformaInvoiceLine) -> ProformaLineOut:
     sizes = line.sizes or {}
     total_qty = Decimal(str(sum(v for v in sizes.values() if isinstance(v, (int, float)))))
@@ -179,14 +173,24 @@ def _save_lines(db: Session, proforma_id: int, lines_in: list[ProformaLineIn]) -
     return saved
 
 
+_TRANSITIONS: dict[str, set[str]] = {
+    ProformaStatus.DRAFT.value:        {ProformaStatus.SENT.value, ProformaStatus.CANCELLED.value},
+    ProformaStatus.SENT.value:         {ProformaStatus.ADVANCE_PAID.value, ProformaStatus.CANCELLED.value, ProformaStatus.DRAFT.value},
+    ProformaStatus.ADVANCE_PAID.value: {ProformaStatus.BALANCE_PAID.value, ProformaStatus.CANCELLED.value},
+    ProformaStatus.BALANCE_PAID.value: {ProformaStatus.COMPLETED.value},
+    ProformaStatus.COMPLETED.value:    set(),
+    ProformaStatus.CANCELLED.value:    {ProformaStatus.DRAFT.value},
+}
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/proforma-invoices", response_model=ProformaOut, status_code=201)
 def create_proforma(payload: ProformaIn, db: Session = Depends(get_db)):
     if not payload.lines:
         raise HTTPException(400, "At least one line item required")
+    setting = db.get(CompanySetting, "proforma_terms")
+    default_terms = setting.value if setting else DEFAULT_TERMS
     pi = ProformaInvoice(
-        invoice_number=_next_invoice_number(db),
         customer_name=payload.customer_name,
         customer_phone=payload.customer_phone,
         customer_email=payload.customer_email,
@@ -195,12 +199,13 @@ def create_proforma(payload: ProformaIn, db: Session = Depends(get_db)):
         customer_state=payload.customer_state,
         delivery_date=payload.delivery_date,
         description=payload.description,
-        terms_and_conditions=payload.terms_and_conditions or DEFAULT_TERMS,
+        terms_and_conditions=payload.terms_and_conditions or default_terms,
         advance_percent=payload.advance_percent,
         status=ProformaStatus.DRAFT.value,
     )
     db.add(pi)
     db.flush()
+    pi.invoice_number = f"PI-{pi.id:04d}"
     lines = _save_lines(db, pi.id, payload.lines)
     db.commit()
     db.refresh(pi)
@@ -238,6 +243,8 @@ def update_proforma(pi_id: int, payload: ProformaUpdate, db: Session = Depends(g
     for k, v in data.items():
         setattr(pi, k, v)
     if lines_in is not None:
+        if not lines_in:
+            raise HTTPException(400, "Lines cannot be empty")
         lines = _save_lines(db, pi_id, [ProformaLineIn(**l) for l in lines_in])
     else:
         lines = list(db.scalars(select(ProformaInvoiceLine).filter_by(proforma_id=pi_id)).all())
@@ -252,14 +259,6 @@ def update_status(pi_id: int, payload: StatusTransitionIn, db: Session = Depends
     if not pi:
         raise HTTPException(404, "Proforma invoice not found")
 
-    _TRANSITIONS = {
-        ProformaStatus.DRAFT.value: {ProformaStatus.SENT.value, ProformaStatus.CANCELLED.value},
-        ProformaStatus.SENT.value: {ProformaStatus.ADVANCE_PAID.value, ProformaStatus.CANCELLED.value, ProformaStatus.DRAFT.value},
-        ProformaStatus.ADVANCE_PAID.value: {ProformaStatus.BALANCE_PAID.value, ProformaStatus.CANCELLED.value},
-        ProformaStatus.BALANCE_PAID.value: {ProformaStatus.COMPLETED.value},
-        ProformaStatus.COMPLETED.value: set(),
-        ProformaStatus.CANCELLED.value: {ProformaStatus.DRAFT.value},
-    }
     allowed = _TRANSITIONS.get(pi.status, set())
     if payload.status.value not in allowed:
         raise HTTPException(400, f"Cannot move from '{pi.status}' to '{payload.status.value}'")
