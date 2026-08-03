@@ -36,6 +36,10 @@ class SalesOrder(Base):
     status: Mapped[str] = mapped_column(String, nullable=False, default=SalesOrderStatus.DRAFT.value)
     payment_mode: Mapped[str] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    razorpay_order_id: Mapped[str] = mapped_column(String, nullable=True)
+    utr_number: Mapped[str] = mapped_column(String, nullable=True)
+    settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    raw_items: Mapped[str] = mapped_column(Text, nullable=True)
 
 
 class SalesOrderLine(Base):

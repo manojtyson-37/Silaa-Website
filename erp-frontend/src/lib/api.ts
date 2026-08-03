@@ -232,6 +232,10 @@ export type SalesOrder = {
   total_amount: string | null;
   has_stock_issue?: boolean;
   resolution?: SalesOrderResolution;
+  razorpay_order_id?: string | null;
+  utr_number?: string | null;
+  settled_at?: string | null;
+  raw_items?: string | null;
 };
 export type SalesOrderLine = { id: number; variant_id: number; qty: string; unit_price: string; gst_percent: string };
 export type SalesOrderDetail = SalesOrder & { lines: SalesOrderLine[] };

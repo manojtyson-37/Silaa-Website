@@ -144,11 +144,23 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground max-w-sm truncate">
-                    Category: {order.category || "—"}{order.payment_mode ? ` · ${order.payment_mode}` : ""}
+                    Phone: {order.customer_phone || "—"} · Category: {order.category || "—"}{order.payment_mode ? ` · ${order.payment_mode}` : ""}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Date: {fmtDate(order.created_at)} · Total: <span className="font-medium text-foreground">{fmtAmount(order.total_amount)}</span>
                   </p>
+                  {order.raw_items && (
+                    <p className="text-xs text-muted-foreground mt-1 font-medium bg-accent/10 text-accent-foreground px-2 py-0.5 rounded inline-block">
+                      Items: {order.raw_items}
+                    </p>
+                  )}
+                  {(order.utr_number || order.settled_at) && (
+                    <div className="mt-2 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded border border-emerald-100 inline-block flex items-center gap-2">
+                      <span className="font-medium">✅ Settled via Razorpay</span>
+                      {order.utr_number && <span>· UTR: {order.utr_number}</span>}
+                      {order.settled_at && <span>· {fmtDate(order.settled_at)}</span>}
+                    </div>
+                  )}
                   
                   {/* Resolution Timeline */}
                   {order.resolution && (

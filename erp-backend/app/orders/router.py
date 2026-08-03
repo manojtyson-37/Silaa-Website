@@ -39,6 +39,8 @@ class SalesOrderIn(BaseModel):
     payment_mode: PaymentMode = None
     lines: list[SalesOrderLineIn]
     created_by: str
+    razorpay_order_id: Optional[str] = None
+    raw_items: Optional[str] = None
 
 
 class SalesOrderResolutionOut(BaseModel):
@@ -65,6 +67,10 @@ class SalesOrderOut(BaseModel):
     total_amount: Optional[str] = None
     has_stock_issue: Optional[bool] = False
     resolution: Optional[SalesOrderResolutionOut] = None
+    razorpay_order_id: Optional[str] = None
+    utr_number: Optional[str] = None
+    settled_at: Optional[datetime] = None
+    raw_items: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -77,6 +83,8 @@ class SalesOrderUpdate(BaseModel):
     category: Optional[str] = None
     payment_mode: PaymentMode = None
     lines: Optional[list[SalesOrderLineIn]] = None
+    utr_number: Optional[str] = None
+    settled_at: Optional[datetime] = None
 
 
 @router.post("/sales-orders", response_model=SalesOrderOut)
@@ -91,6 +99,8 @@ def create_order(payload: SalesOrderIn, db: Session = Depends(get_db)):
         payment_mode=payload.payment_mode,
         lines=[l.model_dump() for l in payload.lines],
         created_by=payload.created_by,
+        razorpay_order_id=payload.razorpay_order_id,
+        raw_items=payload.raw_items,
     )
 
 
@@ -198,6 +208,10 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
         "created_at": order.created_at,
         "total_amount": total_amount,
         "resolution": res_dict,
+        "razorpay_order_id": order.razorpay_order_id,
+        "utr_number": order.utr_number,
+        "settled_at": order.settled_at,
+        "raw_items": order.raw_items,
         "lines": [
             {
                 "id": l.id, 

@@ -232,9 +232,11 @@ export async function saveOrder(
       const unmappedItems = order.items.filter(item => !item.erpVariantId);
       let finalAddress = order.customer.address;
       if (unmappedItems.length > 0) {
-        const unmappedStr = unmappedItems.map(i => `${i.name} (Qty: ${i.qty})`).join(", ");
+        const unmappedStr = unmappedItems.map(i => `${i.title} (Qty: ${i.qty})`).join(", ");
         finalAddress = `${finalAddress}\n\n[WARNING: Order contains items missing from ERP catalogue: ${unmappedStr}]`;
       }
+
+      const rawItemsStr = order.items.map(i => `${i.title} (Qty: ${i.qty})`).join(", ");
 
       const payload = {
         customer_name: order.customer.name,
@@ -244,7 +246,9 @@ export async function saveOrder(
         category: "B2C",
         campaign_id: order.campaign?.id || null,
         lines: orderLines,
-        created_by: "Website Integration"
+        created_by: "Website Integration",
+        razorpay_order_id: order.payment?.razorpayOrderId || null,
+        raw_items: rawItemsStr
       };
 
       // 3. Post to ERP

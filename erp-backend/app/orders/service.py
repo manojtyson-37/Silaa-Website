@@ -74,6 +74,8 @@ def create_sales_order(
     category: str | None = None,
     campaign_id: str | None = None,
     payment_mode: str | None = None,
+    razorpay_order_id: str | None = None,
+    raw_items: str | None = None,
 ) -> SalesOrder:
     order = SalesOrder(
         customer_name=customer_name,
@@ -83,6 +85,8 @@ def create_sales_order(
         category=category,
         campaign_id=campaign_id,
         payment_mode=payment_mode,
+        razorpay_order_id=razorpay_order_id,
+        raw_items=raw_items,
         status=SalesOrderStatus.DRAFT.value,
     )
     session.add(order)

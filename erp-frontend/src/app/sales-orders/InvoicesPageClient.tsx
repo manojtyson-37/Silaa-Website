@@ -21,14 +21,14 @@ export default function InvoicesPageClient({ token }: Props) {
       {!showForm && !editOrderId && (
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Retail Sales Invoice</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Create, track and print GST invoices for retail sales</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Orders</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Manage sales orders and track settlements</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
             className="inline-flex items-center gap-2 text-sm font-semibold bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors cursor-pointer shrink-0"
           >
-            <Plus size={14} /> New Invoice
+            <Plus size={14} /> New Order
           </button>
         </div>
       )}

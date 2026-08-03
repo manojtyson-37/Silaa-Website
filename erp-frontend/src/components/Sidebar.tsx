@@ -42,7 +42,7 @@ const SECTIONS: NavSection[] = [
   {
     title: "Finance",
     items: [
-      { href: "/sales-orders", label: "Retail Sales Invoice", icon: ScrollText },
+      { href: "/sales-orders", label: "Orders", icon: ScrollText },
       { href: "/proforma-invoices", label: "Proforma Invoices", icon: FileText },
       { href: "/expenses", label: "Expenses", icon: Receipt },
       { href: "/reports", label: "Reports", icon: BarChart3 },
