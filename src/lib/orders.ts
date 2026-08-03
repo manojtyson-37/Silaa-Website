@@ -229,19 +229,25 @@ export async function saveOrder(
           gst_percent: 5 // Default GST
         }));
         
-      if (orderLines.length > 0) {
-        const payload = {
-          customer_name: order.customer.name,
-          customer_phone: order.customer.phone,
-          customer_address: order.customer.address,
-          customer_state: order.customer.city || "Website Order",
-          category: "B2C",
-          campaign_id: order.campaign?.id || null,
-          lines: orderLines,
-          created_by: "Website Integration"
-        };
+      const unmappedItems = order.items.filter(item => !item.erpVariantId);
+      let finalAddress = order.customer.address;
+      if (unmappedItems.length > 0) {
+        const unmappedStr = unmappedItems.map(i => `${i.name} (Qty: ${i.qty})`).join(", ");
+        finalAddress = `${finalAddress}\n\n[WARNING: Order contains items missing from ERP catalogue: ${unmappedStr}]`;
+      }
 
-        // 3. Post to ERP
+      const payload = {
+        customer_name: order.customer.name,
+        customer_phone: order.customer.phone,
+        customer_address: finalAddress,
+        customer_state: order.customer.city || "Website Order",
+        category: "B2C",
+        campaign_id: order.campaign?.id || null,
+        lines: orderLines,
+        created_by: "Website Integration"
+      };
+
+      // 3. Post to ERP
         await fetch(`${ERP_URL}/api/erp/sales-orders`, {
           method: "POST",
           headers: {
@@ -250,7 +256,6 @@ export async function saveOrder(
           },
           body: JSON.stringify(payload),
         });
-      }
     }
   } catch (e) {
     console.error("Failed to sync order to ERP:", e);
