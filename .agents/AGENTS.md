@@ -33,3 +33,8 @@ When pushing code to Vercel (or any other deployment target), you must:
 When automating Vercel tasks, ALWAYS use the provided CLI token. The token is available in your environment variables as VERCEL_TOKEN.
 Command format: `npx vercel [command] --token $VERCEL_TOKEN --scope manojsuperb09-7598s-projects`
 
+## Incident Learnings & Strict Constraints
+Based on past mistakes (Incident on 04 Aug 2026), you MUST adhere to the following strict constraints:
+1. **Never Hardcode Placeholder Data in Production:** If you are updating a database record (e.g., via a cleanup script), do NOT arbitrarily guess values like prices or amounts. Always fetch the true values first (e.g., query the Sanity catalog for product prices or check Razorpay logs) before modifying production data.
+2. **Schema & API Validation Awareness:** When adding new database columns (especially `Decimal`), you must thoroughly check all downstream Pydantic schemas and UI serializers. Pydantic v2 is strict; if a schema expects a `str`, returning a `Decimal` from the DB will crash the endpoint. Use `field_validator` or update the schema correctly.
+3. **End-to-End Verification Before Confirmation:** Never declare a task "done" without manually verifying the live endpoint. If you run a migration, test the API locally or curl the production endpoint to ensure it returns a 200 OK and isn't throwing a 500 Internal Server Error due to validation failures.
