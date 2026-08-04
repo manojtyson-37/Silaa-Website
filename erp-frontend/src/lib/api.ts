@@ -242,6 +242,12 @@ export type SalesOrder = {
   utr_number?: string | null;
   settled_at?: string | null;
   raw_items?: string | null;
+  shiprocket_order_id?: number | null;
+  shiprocket_shipment_id?: number | null;
+  shiprocket_awb?: string | null;
+  customer_city?: string | null;
+  customer_pincode?: string | null;
+  customer_email?: string | null;
 };
 export type SalesOrderLine = { id: number; variant_id: number; qty: string; unit_price: string; gst_percent: string };
 export type SalesOrderDetail = SalesOrder & { lines: SalesOrderLine[] };

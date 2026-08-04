@@ -44,6 +44,16 @@ class SalesOrder(Base):
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=True)
     discount_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=True)
     discount_code: Mapped[str] = mapped_column(String, nullable=True)
+    
+    # Address extensions
+    customer_city: Mapped[str] = mapped_column(String, nullable=True)
+    customer_pincode: Mapped[str] = mapped_column(String, nullable=True)
+    customer_email: Mapped[str] = mapped_column(String, nullable=True)
+
+    # Shiprocket tracking
+    shiprocket_order_id: Mapped[int] = mapped_column(nullable=True)
+    shiprocket_shipment_id: Mapped[int] = mapped_column(nullable=True)
+    shiprocket_awb: Mapped[str] = mapped_column(String, nullable=True)
 
 
 class SalesOrderLine(Base):

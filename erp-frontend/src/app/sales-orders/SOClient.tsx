@@ -182,6 +182,14 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
                       )}
                     </div>
                   )}
+
+                  {/* Shiprocket Tracking */}
+                  {order.shiprocket_order_id && (
+                    <div className="mt-2 text-xs text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded border border-indigo-100 inline-block flex items-center gap-2">
+                      <span className="font-medium">🚀 Shiprocket Order</span>
+                      {order.shiprocket_awb && <span>· AWB: {order.shiprocket_awb}</span>}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4 relative">
@@ -190,6 +198,7 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
                     orderId={order.id}
                     status={order.status}
                     totalAmount={order.total_amount}
+                    shiprocketOrderId={order.shiprocket_order_id}
                     onRefresh={handleRefresh}
                     onDelete={() => handleDelete(order.id)}
                   />

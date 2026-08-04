@@ -10,13 +10,14 @@ type Props = {
   orderId: number;
   status: string;
   totalAmount?: string | null;
+  shiprocketOrderId?: number | null;
   onRefresh?: () => void;
   onDelete?: () => void;
 };
 
 import ResolutionDialog from "./ResolutionDialog";
 
-export default function OrderActions({ orderId, status, totalAmount, onRefresh, onDelete }: Props) {
+export default function OrderActions({ orderId, status, totalAmount, shiprocketOrderId, onRefresh, onDelete }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -92,6 +93,17 @@ export default function OrderActions({ orderId, status, totalAmount, onRefresh, 
     setResolutionType("replace");
   };
 
+  const pushToShiprocket = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await api.post(`/sales-orders/${orderId}/shiprocket`, undefined, getClientToken());
+      refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to push to Shiprocket");
+    } finally { setLoading(false); }
+  };
+
   const printInvoice = () => {
     window.open(`/sales-orders/${orderId}/print`, "_blank");
   };
@@ -157,6 +169,15 @@ export default function OrderActions({ orderId, status, totalAmount, onRefresh, 
                       Replace
                     </button>
                   </>
+                )}
+                {!shiprocketOrderId && (status === "fulfilled" || status === "draft") && (
+                  <button
+                    onClick={() => { pushToShiprocket(); setMenuOpen(false); }}
+                    disabled={loading}
+                    className="w-full text-left px-3 py-1.5 text-xs border-t border-border mt-1 pt-1.5 hover:bg-indigo-50 text-indigo-700 disabled:opacity-50"
+                  >
+                    Shiprocket
+                  </button>
                 )}
               </div>
             )}

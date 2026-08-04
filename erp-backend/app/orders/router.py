@@ -44,6 +44,9 @@ class SalesOrderIn(BaseModel):
     total_amount: Optional[Decimal] = None
     discount_amount: Optional[Decimal] = None
     discount_code: Optional[str] = None
+    customer_city: Optional[str] = None
+    customer_pincode: Optional[str] = None
+    customer_email: Optional[str] = None
 
 
 class SalesOrderResolutionOut(BaseModel):
@@ -76,6 +79,12 @@ class SalesOrderOut(BaseModel):
     raw_items: Optional[str] = None
     discount_amount: Optional[str] = None
     discount_code: Optional[str] = None
+    customer_city: Optional[str] = None
+    customer_pincode: Optional[str] = None
+    customer_email: Optional[str] = None
+    shiprocket_order_id: Optional[int] = None
+    shiprocket_shipment_id: Optional[int] = None
+    shiprocket_awb: Optional[str] = None
 
     @field_validator('total_amount', 'discount_amount', mode='before')
     @classmethod
@@ -118,6 +127,9 @@ def create_order(payload: SalesOrderIn, db: Session = Depends(get_db)):
         total_amount=payload.total_amount,
         discount_amount=payload.discount_amount,
         discount_code=payload.discount_code,
+        customer_city=payload.customer_city,
+        customer_pincode=payload.customer_pincode,
+        customer_email=payload.customer_email,
     )
 
 
@@ -237,6 +249,12 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
         "utr_number": order.utr_number,
         "settled_at": order.settled_at,
         "raw_items": order.raw_items,
+        "customer_city": order.customer_city,
+        "customer_pincode": order.customer_pincode,
+        "customer_email": order.customer_email,
+        "shiprocket_order_id": order.shiprocket_order_id,
+        "shiprocket_shipment_id": order.shiprocket_shipment_id,
+        "shiprocket_awb": order.shiprocket_awb,
         "lines": [
             {
                 "id": l.id, 
@@ -477,3 +495,103 @@ def take_pending_order(razorpay_order_id: str, db: Session = Depends(get_db)):
     db.delete(record)
     db.commit()
     return payload
+
+import re
+from app.shiprocket.client import create_order as shiprocket_create_order, assign_awb as shiprocket_assign_awb
+
+@router.post("/sales-orders/{order_id}/shiprocket")
+def push_to_shiprocket(order_id: int, db: Session = Depends(get_db)):
+    order = db.get(SalesOrder, order_id)
+    if not order:
+        raise HTTPException(404, "Order not found")
+        
+    if order.shiprocket_order_id:
+        raise HTTPException(400, "Order already pushed to Shiprocket")
+        
+    lines = db.query(SalesOrderLine).filter_by(sales_order_id=order_id).all()
+    if not lines:
+        raise HTTPException(400, "Order has no lines")
+        
+    # Regex parser for legacy addresses
+    city = order.customer_city
+    pincode = order.customer_pincode
+    
+    if not pincode and order.customer_address:
+        # Try to find a 6 digit number in address
+        match = re.search(r'\b\d{6}\b', order.customer_address)
+        if match:
+            pincode = match.group(0)
+            
+    if not city:
+        city = order.customer_state or "Bengaluru"
+        
+    if not pincode:
+        raise HTTPException(400, "Cannot push to Shiprocket without a Pincode. Please edit the order to add one.")
+        
+    from app.style_variant.models import StyleVariant
+    
+    items = []
+    sub_total = 0
+    for l in lines:
+        v = db.get(StyleVariant, l.variant_id)
+        if not v:
+            continue
+        items.append({
+            "name": f"{v.sku_code} - {v.color} - {v.size}",
+            "sku": v.sku_code,
+            "units": int(l.qty),
+            "selling_price": float(l.unit_price),
+            "discount": 0,
+            "tax": float(l.gst_percent)
+        })
+        sub_total += float(l.qty * l.unit_price)
+
+    payload = {
+        "order_id": f"Silaa-{order.id}",
+        "order_date": order.created_at.strftime("%Y-%m-%d %H:%M"),
+        "pickup_location": "Divya",
+        "billing_customer_name": order.customer_name,
+        "billing_last_name": " ",
+        "billing_address": order.customer_address or "N/A",
+        "billing_city": city,
+        "billing_pincode": pincode,
+        "billing_state": order.customer_state or "Karnataka",
+        "billing_country": "India",
+        "billing_email": order.customer_email or "info@silacollective.in",
+        "billing_phone": order.customer_phone or "9999999999",
+        "shipping_is_billing": True,
+        "order_items": items,
+        "payment_method": "Prepaid" if order.payment_mode != "Cash" else "COD",
+        "sub_total": sub_total,
+        "length": 10,
+        "breadth": 10,
+        "height": 10,
+        "weight": 0.5
+    }
+    
+    try:
+        res = shiprocket_create_order(payload)
+    except Exception as e:
+        raise HTTPException(500, f"Shiprocket Error: {str(e)}")
+        
+    order_id_sr = res.get("order_id")
+    shipment_id = res.get("shipment_id")
+    awb_code = res.get("awb_code")
+    
+    # Sometimes AWB isn't generated instantly, try to assign it manually if needed
+    if not awb_code and shipment_id:
+        try:
+            awb_res = shiprocket_assign_awb(shipment_id)
+            if awb_res.get("awb_assign_status") == 1:
+                awb_code = awb_res.get("response", {}).get("data", {}).get("awb_code")
+        except:
+            pass # We can retry AWB generation later
+            
+    order.shiprocket_order_id = order_id_sr
+    order.shiprocket_shipment_id = shipment_id
+    order.shiprocket_awb = awb_code
+    
+    db.commit()
+    
+    return {"status": "success", "shiprocket_order_id": order_id_sr, "shiprocket_awb": awb_code}
+
