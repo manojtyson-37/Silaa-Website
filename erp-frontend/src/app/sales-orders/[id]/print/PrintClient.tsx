@@ -42,6 +42,17 @@ export default function PrintClient({ order }: Props) {
     }
   }, []);
 
+  let subtotal = 0;
+  let totalTax = 0;
+  order.lines.forEach((l) => {
+    const qty = Number(l.qty) || 0;
+    const unitPrice = Number(l.unit_price) || 0;
+    const gst = Number(l.gst_percent) || 0;
+    const amt = qty * unitPrice;
+    subtotal += amt;
+    totalTax += amt * gst / 100;
+  });
+
   return (
     <>
       <style>{`
@@ -135,6 +146,16 @@ export default function PrintClient({ order }: Props) {
         {/* Totals */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
           <div style={{ minWidth: 260 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 12px", fontSize: 13 }}>
+              <span>Subtotal</span>
+              <span>₹{subtotal.toFixed(2)}</span>
+            </div>
+            {totalTax > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 12px", fontSize: 13 }}>
+                <span>Tax (GST)</span>
+                <span>₹{totalTax.toFixed(2)}</span>
+              </div>
+            )}
             {order.discount_amount && (
               <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 12px", fontSize: 13, color: "#ef4444" }}>
                 <span>Discount ({order.discount_code || "Coupon"})</span>

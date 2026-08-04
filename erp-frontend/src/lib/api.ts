@@ -36,8 +36,12 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
     },
   });
   if (res.status === 401) {
-    const { redirect } = await import("next/navigation");
-    redirect("/login");
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    } else {
+      const { redirect } = await import("next/navigation");
+      redirect("/login");
+    }
   }
   if (!res.ok) {
     const body = await res.text();

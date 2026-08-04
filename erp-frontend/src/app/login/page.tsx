@@ -37,7 +37,7 @@ export default function LoginPage() {
           
           setTimeout(() => {
             if (dot.parentNode) dot.parentNode.removeChild(dot);
-          }, 800);
+          }, 2500);
         }
       }
     };
@@ -68,15 +68,15 @@ export default function LoginPage() {
           width: 80px;
           height: 80px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 60%);
+          background: radial-gradient(circle, rgba(16, 185, 129, 0.7) 0%, transparent 60%);
           pointer-events: none;
           transform: translate(-50%, -50%) scale(1);
-          animation: fadeTrail 0.8s forwards ease-out;
+          animation: fadeTrail 2.5s forwards ease-out;
           z-index: 1;
         }
         @keyframes fadeTrail {
           0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-          100% { opacity: 0; transform: translate(-50%, -50%) scale(0.1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
         }
       `}} />
       
