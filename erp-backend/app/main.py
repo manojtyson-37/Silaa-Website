@@ -121,7 +121,7 @@ app.include_router(upload_router, dependencies=_protected)
 
 from app.customers.router import public_router as customers_public_router
 app.include_router(customers_public_router)
-app.include_router(customers_router, dependencies=_protected)
+app.include_router(customers_router)
 app.include_router(proforma_router, dependencies=_protected)
 app.include_router(users_router) # dependencies are internal to users router
 
