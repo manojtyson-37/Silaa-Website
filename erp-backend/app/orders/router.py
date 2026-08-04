@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import Response
 from typing import Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_default_warehouse_id
@@ -76,6 +76,15 @@ class SalesOrderOut(BaseModel):
     raw_items: Optional[str] = None
     discount_amount: Optional[str] = None
     discount_code: Optional[str] = None
+
+    @field_validator('total_amount', 'discount_amount', mode='before')
+    @classmethod
+    def coerce_to_string(cls, v):
+        if v is not None:
+            if isinstance(v, Decimal):
+                return f"{v:.2f}"
+            return str(v)
+        return v
 
     model_config = {"from_attributes": True}
 
