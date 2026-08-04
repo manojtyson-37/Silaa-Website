@@ -13,13 +13,33 @@ export default function LoginPage() {
   const spotlightRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let lastTime = 0;
     const handleMouseMove = (e: MouseEvent) => {
       if (!spotlightRef.current) return;
       const x = e.clientX;
       const y = e.clientY;
-      // Use CSS variables for performance
+      
+      // Update main spotlight
       spotlightRef.current.style.setProperty("--mouse-x", `${x}px`);
       spotlightRef.current.style.setProperty("--mouse-y", `${y}px`);
+
+      // Throttle trail dot creation slightly to prevent DOM overload
+      const now = Date.now();
+      if (now - lastTime > 30) {
+        lastTime = now;
+        const trailContainer = document.getElementById("trail-container");
+        if (trailContainer) {
+          const dot = document.createElement("div");
+          dot.className = "mouse-trail-dot";
+          dot.style.left = `${x}px`;
+          dot.style.top = `${y}px`;
+          trailContainer.appendChild(dot);
+          
+          setTimeout(() => {
+            if (dot.parentNode) dot.parentNode.removeChild(dot);
+          }, 800);
+        }
+      }
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -41,12 +61,34 @@ export default function LoginPage() {
 
   return (
     <main className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#030303] text-zinc-300 font-sans px-4">
+      {/* CSS for mouse trail */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .mouse-trail-dot {
+          position: fixed;
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 60%);
+          pointer-events: none;
+          transform: translate(-50%, -50%) scale(1);
+          animation: fadeTrail 0.8s forwards ease-out;
+          z-index: 1;
+        }
+        @keyframes fadeTrail {
+          0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(0.1); }
+        }
+      `}} />
+      
+      {/* Container for trail dots */}
+      <div id="trail-container" className="fixed inset-0 z-0 pointer-events-none"></div>
+
       {/* Interactive Spotlight Background */}
       <div 
         ref={spotlightRef}
         className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-300"
         style={{
-          background: "radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(16, 185, 129, 0.07), transparent 40%)"
+          background: "radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(16, 185, 129, 0.15), transparent 40%)"
         }}
       />
       
