@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input } from "@/components/ui";
 import { loginAction } from "./actions";
 
 export default function LoginPage() {
@@ -11,6 +10,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const spotlightRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!spotlightRef.current) return;
+      const x = e.clientX;
+      const y = e.clientY;
+      // Use CSS variables for performance
+      spotlightRef.current.style.setProperty("--mouse-x", `${x}px`);
+      spotlightRef.current.style.setProperty("--mouse-y", `${y}px`);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   const submit = async () => {
     setLoading(true);
@@ -26,45 +40,62 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center overflow-hidden bg-zinc-950 px-4">
-      {/* Animated ambient background */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/20 blur-[120px] rounded-full pointer-events-none"></div>
-      </div>
+    <main className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#030303] text-zinc-300 font-sans px-4">
+      {/* Interactive Spotlight Background */}
+      <div 
+        ref={spotlightRef}
+        className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-300"
+        style={{
+          background: "radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(16, 185, 129, 0.07), transparent 40%)"
+        }}
+      />
+      
+      {/* Subtle Noise Texture */}
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
 
-      <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="backdrop-blur-xl bg-zinc-900/60 border border-white/10 p-8 rounded-2xl shadow-2xl overflow-hidden relative">
+      <div className="relative z-10 w-full max-w-[380px] animate-in fade-in zoom-in-95 duration-700 ease-out">
+        
+        {/* Glow behind the card */}
+        <div className="absolute -inset-1 rounded-[24px] bg-gradient-to-b from-emerald-500/20 to-transparent opacity-50 blur-xl"></div>
+        
+        <div className="backdrop-blur-2xl bg-[#0a0a0a]/80 border border-white/5 p-10 rounded-[24px] shadow-2xl relative">
           
-          {/* Subtle top border glow */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
+          {/* Top highlight line */}
+          <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           
-          <div className="mb-8 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 mb-4 shadow-lg shadow-emerald-500/30">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          <div className="mb-10 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-b from-zinc-800 to-zinc-900 border border-white/5 shadow-inner mb-6 relative">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-sm"></div>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-emerald-400 relative z-10">
+                <path d="M12 2L2 7l10 5 10-5-10-5Z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Silaa ERP</h1>
-            <p className="text-sm text-zinc-400 mt-2">Sign in to access your workspace</p>
+            <h1 className="text-2xl font-semibold text-white tracking-tight mb-1.5">Welcome back</h1>
+            <p className="text-sm text-zinc-500">Sign in to your workspace</p>
           </div>
           
-          <div className="flex flex-col gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-300 ml-1">Username</label>
+          <div className="flex flex-col gap-5">
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium text-zinc-400">Username</label>
               <input
                 type="text"
-                className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-zinc-600"
+                className="w-full bg-[#111] border border-white/5 text-zinc-100 rounded-xl px-4 py-3 text-[15px] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all placeholder:text-zinc-600 shadow-inner"
                 placeholder="admin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
+                autoComplete="off"
+                spellCheck="false"
               />
             </div>
             
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-300 ml-1">Password</label>
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium text-zinc-400">Password</label>
               <input
                 type="password"
-                className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-zinc-600"
+                className="w-full bg-[#111] border border-white/5 text-zinc-100 rounded-xl px-4 py-3 text-[15px] focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all placeholder:text-zinc-600 shadow-inner"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -73,8 +104,7 @@ export default function LoginPage() {
             </div>
             
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-2.5 rounded-lg flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <div className="mt-2 text-[13px] text-red-400 text-center animate-in fade-in slide-in-from-top-1">
                 {error}
               </div>
             )}
@@ -82,22 +112,22 @@ export default function LoginPage() {
             <button 
               onClick={submit} 
               disabled={!username || !password || loading}
-              className="mt-2 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl px-4 py-3 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2"
+              className="mt-4 w-full bg-white hover:bg-zinc-100 text-zinc-950 font-medium rounded-xl px-4 py-3 text-[15px] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                  Authenticating...
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  Signing in...
                 </>
               ) : (
-                "Sign in"
+                "Continue"
               )}
             </button>
           </div>
         </div>
         
-        <p className="text-center text-zinc-500 text-xs mt-6">
-          &copy; {new Date().getFullYear()} Silaa Collective. All rights reserved.
+        <p className="text-center text-zinc-600 text-[11px] mt-8 font-medium tracking-wide uppercase">
+          &copy; {new Date().getFullYear()} Silaa Collective
         </p>
       </div>
     </main>
