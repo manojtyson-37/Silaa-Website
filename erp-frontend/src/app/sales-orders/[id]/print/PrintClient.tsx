@@ -133,8 +133,14 @@ export default function PrintClient({ order }: Props) {
         {/* Totals */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
           <div style={{ minWidth: 260 }}>
+            {order.discount_amount && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 12px", fontSize: 13, color: "#ef4444" }}>
+                <span>Discount ({order.discount_code || "Coupon"})</span>
+                <span>-₹{(Number(order.discount_amount) || 0).toFixed(2)}</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", fontSize: 15, fontWeight: 700, borderTop: "2px solid #111", marginTop: 4 }}>
-              <span>Total Amount</span>
+              <span>Total Amount (Paid)</span>
               <span>₹{(Number(order.total_amount) || 0).toFixed(2)}</span>
             </div>
           </div>

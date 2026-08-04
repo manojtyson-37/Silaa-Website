@@ -41,6 +41,9 @@ class SalesOrderIn(BaseModel):
     created_by: str
     razorpay_order_id: Optional[str] = None
     raw_items: Optional[str] = None
+    total_amount: Optional[Decimal] = None
+    discount_amount: Optional[Decimal] = None
+    discount_code: Optional[str] = None
 
 
 class SalesOrderResolutionOut(BaseModel):
@@ -71,6 +74,8 @@ class SalesOrderOut(BaseModel):
     utr_number: Optional[str] = None
     settled_at: Optional[datetime] = None
     raw_items: Optional[str] = None
+    discount_amount: Optional[str] = None
+    discount_code: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -101,6 +106,9 @@ def create_order(payload: SalesOrderIn, db: Session = Depends(get_db)):
         created_by=payload.created_by,
         razorpay_order_id=payload.razorpay_order_id,
         raw_items=payload.raw_items,
+        total_amount=payload.total_amount,
+        discount_amount=payload.discount_amount,
+        discount_code=payload.discount_code,
     )
 
 
@@ -127,7 +135,13 @@ def list_orders(db: Session = Depends(get_db)):
             for l in order_lines
         )
         out = SalesOrderOut.model_validate(order)
-        out.total_amount = f"{total:.2f}" if total else None
+        if order.total_amount is not None:
+            out.total_amount = f"{order.total_amount:.2f}"
+        else:
+            out.total_amount = f"{total:.2f}" if total else None
+        
+        if order.discount_amount is not None:
+            out.discount_amount = f"{order.discount_amount:.2f}"
         
         if order.id in res_by_order:
             out.resolution = SalesOrderResolutionOut.model_validate(res_by_order[order.id])
@@ -173,7 +187,7 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     if order is None:
         raise HTTPException(404, "SalesOrder not found")
     lines = db.query(SalesOrderLine).filter_by(sales_order_id=order_id).all()
-    total_amount = sum(Decimal(str(l.qty)) * Decimal(str(l.unit_price)) for l in lines)
+    total_amount = order.total_amount if order.total_amount is not None else sum(Decimal(str(l.qty)) * Decimal(str(l.unit_price)) for l in lines)
     
     # fetch variant names
     from app.style_variant.models import StyleVariant
@@ -206,7 +220,9 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
         "status": order.status,
         "category": order.category,
         "created_at": order.created_at,
-        "total_amount": total_amount,
+        "total_amount": str(total_amount),
+        "discount_amount": str(order.discount_amount) if order.discount_amount else None,
+        "discount_code": order.discount_code,
         "resolution": res_dict,
         "razorpay_order_id": order.razorpay_order_id,
         "utr_number": order.utr_number,

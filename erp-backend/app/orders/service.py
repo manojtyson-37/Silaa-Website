@@ -76,6 +76,9 @@ def create_sales_order(
     payment_mode: str | None = None,
     razorpay_order_id: str | None = None,
     raw_items: str | None = None,
+    total_amount: Decimal | None = None,
+    discount_amount: Decimal | None = None,
+    discount_code: str | None = None,
 ) -> SalesOrder:
     order = SalesOrder(
         customer_name=customer_name,
@@ -87,6 +90,9 @@ def create_sales_order(
         payment_mode=payment_mode,
         razorpay_order_id=razorpay_order_id,
         raw_items=raw_items,
+        total_amount=total_amount,
+        discount_amount=discount_amount,
+        discount_code=discount_code,
         status=SalesOrderStatus.DRAFT.value,
     )
     session.add(order)

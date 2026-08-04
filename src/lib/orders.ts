@@ -248,7 +248,10 @@ export async function saveOrder(
         lines: orderLines,
         created_by: "Website Integration",
         razorpay_order_id: order.payment?.razorpayOrderId || null,
-        raw_items: rawItemsStr
+        raw_items: rawItemsStr,
+        total_amount: order.amount / 100, // Convert from paise to rupees
+        discount_amount: order.campaign?.discountValue ? order.campaign.discountValue / 100 : null,
+        discount_code: order.campaign?.discountCode || null,
       };
 
       // 3. Post to ERP

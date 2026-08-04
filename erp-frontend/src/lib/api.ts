@@ -230,6 +230,8 @@ export type SalesOrder = {
   status: string;
   created_at: string | null;
   total_amount: string | null;
+  discount_amount?: string | null;
+  discount_code?: string | null;
   has_stock_issue?: boolean;
   resolution?: SalesOrderResolution;
   razorpay_order_id?: string | null;

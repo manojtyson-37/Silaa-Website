@@ -40,6 +40,10 @@ class SalesOrder(Base):
     utr_number: Mapped[str] = mapped_column(String, nullable=True)
     settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     raw_items: Mapped[str] = mapped_column(Text, nullable=True)
+    
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=True)
+    discount_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=True)
+    discount_code: Mapped[str] = mapped_column(String, nullable=True)
 
 
 class SalesOrderLine(Base):
