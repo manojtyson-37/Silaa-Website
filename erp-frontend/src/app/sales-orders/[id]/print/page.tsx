@@ -15,6 +15,8 @@ type SalesOrderOut = {
   category?: string;
   created_at: string;
   total_amount: number;
+  discount_amount?: string | number | null;
+  discount_code?: string | null;
   lines: {
     id: number;
     variant_id: number;
