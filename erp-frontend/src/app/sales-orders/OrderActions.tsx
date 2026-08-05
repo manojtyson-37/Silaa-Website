@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Printer, Eye, Trash2, MoreVertical, AlertCircle, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -243,7 +244,7 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
         />
       )}
       
-      {fixErrorMode && (
+      {fixErrorMode && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-surface rounded-xl shadow-2xl relative">
             {fixErrorMsg && (
@@ -261,7 +262,8 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
                }}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
