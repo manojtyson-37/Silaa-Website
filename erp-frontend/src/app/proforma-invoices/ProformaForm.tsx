@@ -128,7 +128,6 @@ export default function ProformaForm({ editId, onClose }: Props) {
   const submit = async () => {
     if (!customerName.trim()) { setError("Customer name required"); return; }
     const validLines = lines.filter(l => l.style_name.trim() && parseFloat(l.unit_price) > 0);
-    if (validLines.length === 0) { setError("Add at least one line with a style name and price"); return; }
 
     setSaving(true);
     setError(null);

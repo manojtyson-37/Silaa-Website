@@ -213,8 +213,6 @@ _TRANSITIONS: dict[str, set[str]] = {
 
 @router.post("/proforma-invoices", response_model=ProformaOut, status_code=201)
 def create_proforma(payload: ProformaIn, db: Session = Depends(get_db)):
-    if not payload.lines:
-        raise HTTPException(400, "At least one line item required")
     setting = db.get(CompanySetting, "proforma_terms")
     default_terms = setting.value if setting else DEFAULT_TERMS
     pi = ProformaInvoice(
