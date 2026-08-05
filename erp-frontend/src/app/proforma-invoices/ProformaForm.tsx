@@ -247,14 +247,16 @@ export default function ProformaForm({ editId, onClose }: Props) {
                       value={line.unit_price}
                       onChange={e => updateLine(i, { unit_price: e.target.value })}
                     />
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      placeholder="GST %"
+                    <Select
                       value={line.gst_percent}
                       onChange={e => updateLine(i, { gst_percent: e.target.value })}
-                    />
+                    >
+                      <option value="0">0% GST</option>
+                      <option value="5">5% GST</option>
+                      <option value="12">12% GST</option>
+                      <option value="18">18% GST</option>
+                      <option value="28">28% GST</option>
+                    </Select>
                     <Input
                       placeholder="Description (e.g. Cotton kurta, collar style)"
                       value={line.description}
