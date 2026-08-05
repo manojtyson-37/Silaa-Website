@@ -260,8 +260,11 @@ export type ProformaLine = {
   description: string | null;
   photo_url: string | null;
   unit_price: string;
+  gst_percent: string;
   sizes: Record<string, number>;
   total_qty: string;
+  taxable_amount: string;
+  gst_amount: string;
   line_total: string;
 };
 
@@ -279,8 +282,14 @@ export type ProformaInvoice = {
   terms_and_conditions: string | null;
   advance_percent: string;
   status: ProformaStatus;
+  advance_payment_mode: string | null;
+  advance_payment_notes: string | null;
+  balance_payment_mode: string | null;
+  balance_payment_notes: string | null;
   created_at: string;
   lines: ProformaLine[];
+  taxable_amount: string;
+  total_gst_amount: string;
   total_amount: string;
   advance_amount: string;
   balance_amount: string;

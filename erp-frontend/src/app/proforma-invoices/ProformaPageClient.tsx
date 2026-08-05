@@ -44,17 +44,34 @@ export default function ProformaPageClient({ token }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [transitioning, setTransitioning] = useState<number | null>(null);
+  const [paymentAction, setPaymentAction] = useState<{ id: number, next: ProformaStatus } | null>(null);
+  const [paymentMode, setPaymentMode] = useState("UPI");
+  const [paymentNotes, setPaymentNotes] = useState("");
 
-  const handleTransition = async (id: number, next: ProformaStatus) => {
+  const handleTransition = async (id: number, next: ProformaStatus, pMode?: string, pNotes?: string) => {
     setTransitioning(id);
     try {
       const tok = getClientToken();
-      await api.post(`/proforma-invoices/${id}/status`, { status: next }, tok);
+      const payload: any = { status: next };
+      if (pMode) payload.payment_mode = pMode;
+      if (pNotes) payload.payment_notes = pNotes;
+      await api.post(`/proforma-invoices/${id}/status`, payload, tok);
       mutate();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to update status");
     } finally {
       setTransitioning(null);
+      setPaymentAction(null);
+    }
+  };
+
+  const handleActionClick = (id: number, next: ProformaStatus) => {
+    if (next === "advance_paid" || next === "balance_paid") {
+      setPaymentMode("UPI");
+      setPaymentNotes("");
+      setPaymentAction({ id, next });
+    } else {
+      handleTransition(id, next);
     }
   };
 
@@ -137,7 +154,7 @@ export default function ProformaPageClient({ token }: Props) {
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     {transition && (
                       <button
-                        onClick={() => handleTransition(pi.id, transition.next)}
+                        onClick={() => handleActionClick(pi.id, transition.next)}
                         disabled={transitioning === pi.id}
                         className="text-xs px-3 py-1.5 rounded-lg bg-accent/10 text-accent font-medium hover:bg-accent/20 transition-colors disabled:opacity-50"
                       >
@@ -171,6 +188,56 @@ export default function ProformaPageClient({ token }: Props) {
               );
             })
           )}
+        </div>
+      )}
+
+      {paymentAction && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-6 bg-surface shadow-2xl relative">
+            <button
+              onClick={() => setPaymentAction(null)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+            >
+              <XCircle size={20} />
+            </button>
+            <h3 className="text-lg font-bold mb-4">
+              {paymentAction.next === "advance_paid" ? "Record Advance Payment" : "Record Balance Payment"}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Payment Mode</label>
+                <select
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
+                  value={paymentMode}
+                  onChange={(e) => setPaymentMode(e.target.value)}
+                >
+                  <option value="UPI">UPI</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Card">Card</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Notes / UTR No.</label>
+                <input
+                  type="text"
+                  placeholder="e.g. UTR 123456789"
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  className="flex-1 bg-accent text-white py-2 rounded-lg text-sm font-semibold hover:bg-accent/90 disabled:opacity-50"
+                  disabled={transitioning !== null}
+                  onClick={() => handleTransition(paymentAction.id, paymentAction.next, paymentMode, paymentNotes)}
+                >
+                  {transitioning ? "Saving..." : "Save Payment"}
+                </button>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
     </>

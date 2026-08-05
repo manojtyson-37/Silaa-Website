@@ -15,19 +15,28 @@ type Line = {
   description: string;
   photo_url: string;
   unit_price: string;
+  gst_percent: string;
   sizes: SizeMap;
 };
 
 function emptyLine(): Line {
-  return { style_name: "", description: "", photo_url: "", unit_price: "", sizes: {} };
+  return { style_name: "", description: "", photo_url: "", unit_price: "", gst_percent: "5", sizes: {} };
 }
 
 function lineTotalQty(l: Line) {
   return Object.values(l.sizes).reduce((s, v) => s + (Number(v) || 0), 0);
 }
 
-function lineAmount(l: Line) {
+function lineTaxableAmount(l: Line) {
   return lineTotalQty(l) * (parseFloat(l.unit_price) || 0);
+}
+
+function lineGstAmount(l: Line) {
+  return lineTaxableAmount(l) * ((parseFloat(l.gst_percent) || 0) / 100);
+}
+
+function lineAmount(l: Line) {
+  return lineTaxableAmount(l) + lineGstAmount(l);
 }
 
 type Props = { editId?: number; onClose: () => void };
@@ -70,11 +79,12 @@ export default function ProformaForm({ editId, onClose }: Props) {
         setDescription(data.description || "");
         setAdvancePercent(String(Number(data.advance_percent) || 50));
         setTermsAndConditions(data.terms_and_conditions || "");
-        setLines(data.lines.map(l => ({
+          setLines(data.lines.map(l => ({
           style_name: l.style_name,
           description: l.description || "",
           photo_url: l.photo_url || "",
           unit_price: String(Number(l.unit_price)),
+          gst_percent: String(Number(l.gst_percent) || 5),
           sizes: { ...l.sizes },
         })));
       })
@@ -109,7 +119,9 @@ export default function ProformaForm({ editId, onClose }: Props) {
     }
   };
 
-  const grandTotal = lines.reduce((sum, l) => sum + lineAmount(l), 0);
+  const totalTaxable = lines.reduce((sum, l) => sum + lineTaxableAmount(l), 0);
+  const totalGst = lines.reduce((sum, l) => sum + lineGstAmount(l), 0);
+  const grandTotal = totalTaxable + totalGst;
   const advanceAmt = grandTotal * (parseFloat(advancePercent) / 100);
   const balanceAmt = grandTotal - advanceAmt;
 
@@ -138,6 +150,7 @@ export default function ProformaForm({ editId, onClose }: Props) {
           description: l.description || null,
           photo_url: l.photo_url || null,
           unit_price: parseFloat(l.unit_price),
+          gst_percent: parseFloat(l.gst_percent) || 0,
           sizes: l.sizes,
         })),
       };
@@ -236,6 +249,14 @@ export default function ProformaForm({ editId, onClose }: Props) {
                       onChange={e => updateLine(i, { unit_price: e.target.value })}
                     />
                     <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="GST %"
+                      value={line.gst_percent}
+                      onChange={e => updateLine(i, { gst_percent: e.target.value })}
+                    />
+                    <Input
                       placeholder="Description (e.g. Cotton kurta, collar style)"
                       value={line.description}
                       onChange={e => updateLine(i, { description: e.target.value })}
@@ -314,8 +335,16 @@ export default function ProformaForm({ editId, onClose }: Props) {
             <div className="flex justify-end">
               <div className="w-72 text-sm space-y-2 border border-border rounded-lg p-4 bg-muted/20">
                 <div className="flex justify-between text-muted-foreground">
+                  <span>Taxable Amount</span>
+                  <span>₹{totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground border-b border-border/50 pb-2">
+                  <span>Total GST</span>
+                  <span>₹{totalGst.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-foreground pt-2">
                   <span>Grand Total</span>
-                  <span className="font-semibold text-foreground">₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  <span className="font-semibold">₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-amber-700 border-t border-border/50 pt-2">
                   <span>Advance ({advancePercent}%)</span>

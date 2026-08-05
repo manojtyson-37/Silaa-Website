@@ -163,6 +163,14 @@ export default function ProformaPrintClient({ pi, settings }: Props) {
         {/* Totals */}
         <div className="flex justify-end mb-8">
           <div className="w-72 space-y-2">
+            <div className="flex justify-between text-sm py-1">
+              <span className="text-muted-foreground">Taxable Amount</span>
+              <span className="font-semibold text-foreground">{fmtAmt(pi.taxable_amount)}</span>
+            </div>
+            <div className="flex justify-between text-sm py-1 border-b border-border/50 pb-2">
+              <span className="text-muted-foreground">Total GST</span>
+              <span className="font-semibold text-foreground">{fmtAmt(pi.total_gst_amount)}</span>
+            </div>
             <div className="flex justify-between text-sm py-2 border-t-2 border-border">
               <span className="font-bold text-foreground">Grand Total</span>
               <span className="font-bold text-foreground">{fmtAmt(pi.total_amount)}</span>
@@ -177,6 +185,29 @@ export default function ProformaPrintClient({ pi, settings }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Payment Receipts */}
+        {(pi.advance_payment_mode || pi.balance_payment_mode) && (
+          <div className="mb-8 border border-border rounded-lg p-4 bg-muted/10">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Payment Receipts</p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {pi.advance_payment_mode && (
+                <div>
+                  <p className="text-muted-foreground">Advance Payment</p>
+                  <p className="font-medium text-foreground">{pi.advance_payment_mode}</p>
+                  {pi.advance_payment_notes && <p className="text-xs text-muted-foreground mt-0.5">{pi.advance_payment_notes}</p>}
+                </div>
+              )}
+              {pi.balance_payment_mode && (
+                <div>
+                  <p className="text-muted-foreground">Balance Payment</p>
+                  <p className="font-medium text-foreground">{pi.balance_payment_mode}</p>
+                  {pi.balance_payment_notes && <p className="text-xs text-muted-foreground mt-0.5">{pi.balance_payment_notes}</p>}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Bank Details */}
         {bankLines.length > 0 && (
