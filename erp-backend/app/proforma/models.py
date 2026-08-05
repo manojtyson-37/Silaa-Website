@@ -33,6 +33,12 @@ class ProformaInvoice(Base):
     terms_and_conditions: Mapped[str] = mapped_column(Text, nullable=True)
     advance_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, server_default="50")
     status: Mapped[str] = mapped_column(String, nullable=False, server_default=ProformaStatus.DRAFT.value)
+    
+    advance_payment_mode: Mapped[str] = mapped_column(String, nullable=True)
+    advance_payment_notes: Mapped[str] = mapped_column(String, nullable=True)
+    balance_payment_mode: Mapped[str] = mapped_column(String, nullable=True)
+    balance_payment_notes: Mapped[str] = mapped_column(String, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
@@ -45,5 +51,6 @@ class ProformaInvoiceLine(Base):
     description: Mapped[str] = mapped_column(String, nullable=True)
     photo_url: Mapped[str] = mapped_column(String, nullable=True)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    gst_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, server_default="5")
     sizes: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     total_qty: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, server_default="0")

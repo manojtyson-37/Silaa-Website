@@ -37,6 +37,7 @@ class ProformaLineIn(BaseModel):
     description: Optional[str] = None
     photo_url: Optional[str] = None
     unit_price: Decimal
+    gst_percent: Decimal = Decimal("5")
     sizes: dict  # {"S": 10, "M": 20, ...}
 
 
@@ -60,8 +61,11 @@ class ProformaLineOut(BaseModel):
     description: Optional[str]
     photo_url: Optional[str]
     unit_price: Decimal
+    gst_percent: Decimal
     sizes: dict
     total_qty: Decimal
+    taxable_amount: Decimal
+    gst_amount: Decimal
     line_total: Decimal
 
     model_config = {"from_attributes": True}
@@ -81,8 +85,14 @@ class ProformaOut(BaseModel):
     terms_and_conditions: Optional[str]
     advance_percent: Decimal
     status: str
+    advance_payment_mode: Optional[str] = None
+    advance_payment_notes: Optional[str] = None
+    balance_payment_mode: Optional[str] = None
+    balance_payment_notes: Optional[str] = None
     created_at: datetime
     lines: list[ProformaLineOut] = []
+    taxable_amount: Decimal = Decimal("0")
+    total_gst_amount: Decimal = Decimal("0")
     total_amount: Decimal = Decimal("0")
     advance_amount: Decimal = Decimal("0")
     balance_amount: Decimal = Decimal("0")
@@ -106,6 +116,8 @@ class ProformaUpdate(BaseModel):
 
 class StatusTransitionIn(BaseModel):
     status: ProformaStatus
+    payment_mode: Optional[str] = None
+    payment_notes: Optional[str] = None
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -113,21 +125,29 @@ class StatusTransitionIn(BaseModel):
 def _compute_line(line: ProformaInvoiceLine) -> ProformaLineOut:
     sizes = line.sizes or {}
     total_qty = Decimal(str(sum(v for v in sizes.values() if isinstance(v, (int, float)))))
-    line_total = total_qty * line.unit_price
+    taxable_amount = total_qty * line.unit_price
+    gst_percent = getattr(line, "gst_percent", Decimal("0"))
+    gst_amount = (taxable_amount * gst_percent / Decimal("100")).quantize(Decimal("0.01"))
+    line_total = taxable_amount + gst_amount
     return ProformaLineOut(
         id=line.id,
         style_name=line.style_name,
         description=line.description,
         photo_url=line.photo_url,
         unit_price=line.unit_price,
+        gst_percent=gst_percent,
         sizes=sizes,
         total_qty=total_qty,
+        taxable_amount=taxable_amount,
+        gst_amount=gst_amount,
         line_total=line_total,
     )
 
 
 def _enrich(pi: ProformaInvoice, lines: list[ProformaInvoiceLine]) -> ProformaOut:
     line_outs = [_compute_line(l) for l in lines]
+    taxable_amount = sum(lo.taxable_amount for lo in line_outs)
+    total_gst_amount = sum(lo.gst_amount for lo in line_outs)
     total = sum(lo.line_total for lo in line_outs)
     advance = (total * pi.advance_percent / Decimal("100")).quantize(Decimal("0.01"))
     return ProformaOut(
@@ -144,8 +164,14 @@ def _enrich(pi: ProformaInvoice, lines: list[ProformaInvoiceLine]) -> ProformaOu
         terms_and_conditions=pi.terms_and_conditions,
         advance_percent=pi.advance_percent,
         status=pi.status,
+        advance_payment_mode=pi.advance_payment_mode,
+        advance_payment_notes=pi.advance_payment_notes,
+        balance_payment_mode=pi.balance_payment_mode,
+        balance_payment_notes=pi.balance_payment_notes,
         created_at=pi.created_at,
         lines=line_outs,
+        taxable_amount=taxable_amount,
+        total_gst_amount=total_gst_amount,
         total_amount=total,
         advance_amount=advance,
         balance_amount=total - advance,
@@ -164,6 +190,7 @@ def _save_lines(db: Session, proforma_id: int, lines_in: list[ProformaLineIn]) -
             description=l.description,
             photo_url=l.photo_url,
             unit_price=l.unit_price,
+            gst_percent=l.gst_percent,
             sizes=sizes,
             total_qty=Decimal(str(total_qty)),
         )
@@ -262,6 +289,14 @@ def update_status(pi_id: int, payload: StatusTransitionIn, db: Session = Depends
     allowed = _TRANSITIONS.get(pi.status, set())
     if payload.status.value not in allowed:
         raise HTTPException(400, f"Cannot move from '{pi.status}' to '{payload.status.value}'")
+    
+    if payload.status == ProformaStatus.ADVANCE_PAID:
+        pi.advance_payment_mode = payload.payment_mode
+        pi.advance_payment_notes = payload.payment_notes
+    elif payload.status == ProformaStatus.BALANCE_PAID:
+        pi.balance_payment_mode = payload.payment_mode
+        pi.balance_payment_notes = payload.payment_notes
+
     pi.status = payload.status.value
     db.commit()
     db.refresh(pi)
