@@ -11,6 +11,7 @@ class Customer(Base):
     email = Column(String(255), unique=True, index=True, nullable=True)
     phone = Column(String(50), nullable=True)
     address = Column(Text, nullable=True)
+    gstin = Column(String(15), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     abandoned_carts = relationship("AbandonedCart", back_populates="customer", cascade="all, delete")

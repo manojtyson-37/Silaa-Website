@@ -389,6 +389,7 @@ export type Customer = {
   email: string | null;
   phone: string | null;
   address: string | null;
+  gstin: string | null;
   created_at: string;
   abandoned_carts: AbandonedCart[];
 };

@@ -23,8 +23,9 @@ class CustomerBase(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+    gstin: Optional[str] = None
 
-    @field_validator('email', 'phone', 'address', mode='before')
+    @field_validator('email', 'phone', 'address', 'gstin', mode='before')
     @classmethod
     def empty_str_to_none(cls, v):
         if v == "":

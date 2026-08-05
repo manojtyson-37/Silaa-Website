@@ -10,7 +10,7 @@ import { Button, Input } from "@/components/ui";
 export default function AddCustomerForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", gstin: "" });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -20,7 +20,7 @@ export default function AddCustomerForm() {
     setError(null);
     try {
       await api.post(`/customers`, form, getClientToken());
-      setForm({ name: "", email: "", phone: "", address: "" });
+      setForm({ name: "", email: "", phone: "", address: "", gstin: "" });
       setOpen(false);
       // Best-effort cache bust: the 30s revalidate window self-heals regardless,
       // so a failure here must never block the already-successful create above.
@@ -103,6 +103,15 @@ export default function AddCustomerForm() {
                     value={form.address}
                     onChange={e => setForm({ ...form, address: e.target.value })}
                     placeholder="e.g. 123 Main St, City"
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-foreground">GST Details <span className="text-muted-foreground text-xs font-normal">(Optional)</span></label>
+                  <Input
+                    value={form.gstin}
+                    onChange={e => setForm({ ...form, gstin: e.target.value })}
+                    placeholder="e.g. 29AAAAA0000A1Z5"
                   />
                 </div>
               </div>
