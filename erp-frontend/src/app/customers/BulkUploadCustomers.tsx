@@ -45,7 +45,8 @@ export default function BulkUploadCustomers() {
           name: name || "",
           phone: phone || null,
           email: email || null,
-          address: address || null
+          address: address || null,
+          gstin: null
         });
       }
     }
