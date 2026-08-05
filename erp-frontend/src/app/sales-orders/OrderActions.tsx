@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Printer, Eye, Trash2, MoreVertical } from "lucide-react";
+import { Printer, Eye, Trash2, MoreVertical, AlertCircle, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getClientToken } from "@/lib/clientAuth";
 
@@ -113,40 +113,62 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
   };
 
   return (
-    <div className="flex items-center gap-2">
-      {/* Print */}
+    <div className="flex flex-col items-end gap-2 relative z-10">
+      <div className="flex items-center gap-1.5 p-1 rounded-lg border border-border/40 bg-muted/20">
+        {/* Preview */}
+        <button
+          onClick={previewInvoice}
+          title="Preview invoice"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white hover:shadow-sm transition-all cursor-pointer"
+        >
+          <Eye size={15} />
+        </button>
+
+        {/* Print */}
         <button
           onClick={printInvoice}
           title="Print invoice"
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white hover:shadow-sm transition-all cursor-pointer"
         >
           <Printer size={15} />
         </button>
+
+        {/* Delete — for cancelled, fulfilled, returned, replaced, AND draft */}
+        {(status === "draft" || status === "cancelled" || status === "fulfilled" || status === "returned" || status === "replaced") && (
+          <button
+            onClick={remove}
+            disabled={loading}
+            title="Delete invoice"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-red-50 hover:border-red-100 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
 
         {/* Status actions menu */}
         {(status === "draft" || status === "fulfilled") && (
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white hover:shadow-sm transition-all cursor-pointer"
             >
               <MoreVertical size={15} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 mt-1 w-32 bg-white border border-border rounded shadow-sm z-10 overflow-hidden py-1">
+              <div className="absolute right-0 mt-1 w-32 bg-white border border-border rounded-lg shadow-md z-50 overflow-hidden py-1">
                 {status === "draft" && (
                   <>
                     <button
                       onClick={() => { fulfill(); setMenuOpen(false); }}
                       disabled={loading}
-                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-emerald-50 text-emerald-700 disabled:opacity-50"
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-emerald-50 text-emerald-700 disabled:opacity-50 transition-colors"
                     >
                       Fulfill
                     </button>
                     <button
                       onClick={() => { cancel(); setMenuOpen(false); }}
                       disabled={loading}
-                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted text-muted-foreground disabled:opacity-50"
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted text-muted-foreground disabled:opacity-50 transition-colors"
                     >
                       Cancel
                     </button>
@@ -157,14 +179,14 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
                     <button
                       onClick={() => { returnOrder(); setMenuOpen(false); }}
                       disabled={loading}
-                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50 text-amber-700 disabled:opacity-50"
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50 text-amber-700 disabled:opacity-50 transition-colors"
                     >
                       Return
                     </button>
                     <button
                       onClick={() => { replaceOrder(); setMenuOpen(false); }}
                       disabled={loading}
-                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-blue-50 text-blue-700 disabled:opacity-50"
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-blue-50 text-blue-700 disabled:opacity-50 transition-colors"
                     >
                       Replace
                     </button>
@@ -174,7 +196,7 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
                   <button
                     onClick={() => { pushToShiprocket(); setMenuOpen(false); }}
                     disabled={loading}
-                    className="w-full text-left px-3 py-1.5 text-xs border-t border-border mt-1 pt-1.5 hover:bg-indigo-50 text-indigo-700 disabled:opacity-50"
+                    className="w-full text-left px-3 py-1.5 text-xs border-t border-border mt-1 pt-1.5 hover:bg-indigo-50 text-indigo-700 disabled:opacity-50 transition-colors"
                   >
                     Shiprocket
                   </button>
@@ -183,29 +205,22 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
             )}
           </div>
         )}
+      </div>
 
-        {/* Delete — for cancelled, fulfilled, returned, replaced, AND draft */}
-        {(status === "draft" || status === "cancelled" || status === "fulfilled" || status === "returned" || status === "replaced") && (
-          <button
-            onClick={remove}
-            disabled={loading}
-            title="Delete invoice"
-            className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
+      {error && (
+        <div className="flex items-start gap-1.5 p-2 rounded-md bg-red-50 border border-red-100 shadow-sm w-[240px]">
+          <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+          <div className="text-[11px] text-red-600 font-medium leading-tight flex-1 break-words">
+            {error}
+          </div>
+          <button 
+            onClick={() => setError(null)} 
+            className="text-red-400 hover:text-red-600 p-0.5 rounded-sm hover:bg-red-100 transition-colors"
           >
-            <Trash2 size={15} />
+            <X size={12} />
           </button>
-        )}
-
-      {/* Preview */}
-        <button
-          onClick={previewInvoice}
-          title="Preview invoice"
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer ml-1"
-        >
-          <Eye size={15} />
-        </button>
-      
-      {error && <div className="text-xs text-red-500 font-medium absolute -bottom-5 right-0 whitespace-nowrap">{error}</div>}
+        </div>
+      )}
       
       {resolutionType && (
         <ResolutionDialog
