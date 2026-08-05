@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, computed_field
 from typing import List, Optional, Any
 from datetime import datetime
 
@@ -60,8 +60,6 @@ class CustomerBase(BaseModel):
 
 class CustomerCreate(CustomerBase):
     pass
-
-from pydantic import BaseModel, field_validator, computed_field
 
 class CustomerOut(CustomerBase):
     id: int
