@@ -78,6 +78,8 @@ export default function CustomersClient({ token }: { token: string }) {
                               <div>
                                 <p className="text-muted-foreground mb-1 text-xs font-semibold uppercase tracking-wider">Customer Info</p>
                                 <p><strong>Email:</strong> {customer.email || "No email provided"}</p>
+                                <p><strong>Category:</strong> <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">{customer.category}</span></p>
+                                {customer.gstin && <p><strong>GSTIN:</strong> {customer.gstin}</p>}
                                 <p><strong>Added On:</strong> {new Date(customer.created_at || "").toLocaleDateString()}</p>
                                 <p><strong>Total Orders:</strong> 0 (WIP)</p>
                               </div>

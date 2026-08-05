@@ -399,6 +399,7 @@ export type Customer = {
   phone: string | null;
   address: string | null;
   gstin: string | null;
+  category: string;
   created_at: string;
   abandoned_carts: AbandonedCart[];
 };

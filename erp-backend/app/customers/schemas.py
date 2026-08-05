@@ -61,11 +61,17 @@ class CustomerBase(BaseModel):
 class CustomerCreate(CustomerBase):
     pass
 
+from pydantic import BaseModel, field_validator, computed_field
+
 class CustomerOut(CustomerBase):
     id: int
     created_at: datetime
     abandoned_carts: List[AbandonedCartOut] = []
     
+    @computed_field
+    def category(self) -> str:
+        return "B2B" if self.gstin and str(self.gstin).strip() else "B2C"
+
     model_config = {"from_attributes": True}
 
 class BulkUploadResultRow(BaseModel):
