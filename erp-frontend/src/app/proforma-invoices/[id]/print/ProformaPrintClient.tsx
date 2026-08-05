@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef } from "react";
-import { Printer, ArrowLeft } from "lucide-react";
+import { useRef, useState } from "react";
+import { Printer, ArrowLeft, Pencil } from "lucide-react";
 import { ProformaInvoice } from "@/lib/api";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import ProformaForm from "@/app/proforma-invoices/ProformaForm";
 
 type Props = {
   pi: ProformaInvoice;
@@ -32,6 +34,8 @@ function fmtAmt(s: string | number, currency = true) {
 
 export default function ProformaPrintClient({ pi, settings }: Props) {
   const printRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [editOpen, setEditOpen] = useState(false);
 
   const handlePrint = () => window.print();
 
@@ -55,12 +59,29 @@ export default function ProformaPrintClient({ pi, settings }: Props) {
           {STATUS_LABEL[pi.status] ?? pi.status}
         </span>
         <button
+          onClick={() => setEditOpen(true)}
+          className="flex items-center gap-2 text-sm font-semibold border border-border text-foreground px-4 py-1.5 rounded-lg hover:bg-muted transition-colors"
+        >
+          <Pencil size={14} /> Edit
+        </button>
+        <button
           onClick={handlePrint}
           className="flex items-center gap-2 text-sm font-semibold bg-accent text-white px-4 py-1.5 rounded-lg hover:bg-accent/90 transition-colors"
         >
           <Printer size={14} /> Print / Share PDF
         </button>
       </div>
+
+      {/* Inline Edit Modal — opens ProformaForm pre-filled with this PI's data */}
+      {editOpen && (
+        <ProformaForm
+          editId={pi.id}
+          onClose={() => {
+            setEditOpen(false);
+            router.refresh();
+          }}
+        />
+      )}
 
       {/* Invoice Document */}
       <div ref={printRef} className="max-w-3xl mx-auto my-8 print:my-0 bg-background shadow-lg print:shadow-none rounded-xl print:rounded-none p-10 print:p-8">
