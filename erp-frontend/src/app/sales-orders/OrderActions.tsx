@@ -16,6 +16,7 @@ type Props = {
 };
 
 import ResolutionDialog from "./ResolutionDialog";
+import NewSalesOrderForm from "./NewSalesOrderForm";
 
 export default function OrderActions({ orderId, status, totalAmount, shiprocketOrderId, onRefresh, onDelete }: Props) {
   const router = useRouter();
@@ -93,6 +94,8 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
     setResolutionType("replace");
   };
 
+  const [fixErrorMode, setFixErrorMode] = useState<boolean>(false);
+
   const pushToShiprocket = async () => {
     setError(null);
     setLoading(true);
@@ -100,7 +103,12 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
       await api.post(`/sales-orders/${orderId}/shiprocket`, undefined, getClientToken());
       refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to push to Shiprocket");
+      const msg = e instanceof Error ? e.message : "Failed to push to Shiprocket";
+      if (msg.toLowerCase().includes("pincode") || msg.toLowerCase().includes("no lines")) {
+        setFixErrorMode(true);
+      } else {
+        setError(msg);
+      }
     } finally { setLoading(false); }
   };
 
@@ -230,6 +238,21 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
           totalAmount={totalAmount || null}
           onSubmit={handleResolution}
         />
+      )}
+      
+      {fixErrorMode && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-surface rounded-xl shadow-2xl relative">
+            <NewSalesOrderForm 
+               initialOrderId={orderId} 
+               onClose={() => setFixErrorMode(false)}
+               onSuccess={() => {
+                 setFixErrorMode(false);
+                 pushToShiprocket();
+               }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

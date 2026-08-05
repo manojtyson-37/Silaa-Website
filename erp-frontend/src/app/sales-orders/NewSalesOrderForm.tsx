@@ -20,9 +20,9 @@ function lineAmount(l: Line) {
   return { taxable, tax, total: taxable + tax };
 }
 
-type Props = { initialOrderId?: number; onClose?: () => void };
+type Props = { initialOrderId?: number; onClose?: () => void; onSuccess?: () => void };
 
-export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {}) {
+export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }: Props = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
   const [loadingOrder, setLoadingOrder] = useState(!!initialOrderId);
@@ -31,7 +31,9 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
+  const [customerCity, setCustomerCity] = useState("");
   const [customerState, setCustomerState] = useState("");
+  const [customerPincode, setCustomerPincode] = useState("");
   const [category, setCategory] = useState("B2C");
   const [paymentMode, setPaymentMode] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
@@ -64,7 +66,9 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
                  setCustomerName(orderData.customer_name);
                  setCustomerPhone(orderData.customer_phone || "");
                  setCustomerAddress(orderData.customer_address || "");
+                 setCustomerCity(orderData.customer_city || "");
                  setCustomerState(orderData.customer_state || "");
+                 setCustomerPincode(orderData.customer_pincode || "");
                  setCategory(orderData.category || "B2C");
                  setPaymentMode(orderData.payment_mode || "");
                  if (orderData.lines && orderData.lines.length > 0) {
@@ -124,7 +128,9 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
         customer_name: customerName.trim(),
         customer_phone: customerPhone || null,
         customer_address: customerAddress || null,
+        customer_city: customerCity || null,
         customer_state: customerState || null,
+        customer_pincode: customerPincode || null,
         category: category,
         payment_mode: paymentMode || null,
         lines: validLines.map((l) => ({
@@ -154,13 +160,14 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
   // Close form only after refresh finishes
   useEffect(() => {
     if (saving && !isPending && !error) {
-      setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCustomerState(""); setPaymentMode("");
+      setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCustomerCity(""); setCustomerState(""); setCustomerPincode(""); setPaymentMode("");
       setLines([emptyLine()]);
       setOpen(false);
       onClose?.();
+      onSuccess?.();
       setSaving(false);
     }
-  }, [isPending, saving, error, onClose]);
+  }, [isPending, saving, error, onClose, onSuccess]);
 
   if (!open) return null;
 
@@ -186,14 +193,22 @@ export default function NewSalesOrderForm({ initialOrderId, onClose }: Props = {
         {/* Customer */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bill To</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <Input placeholder="Customer name *" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
             <Input placeholder="Phone (optional)" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-            <Input placeholder="Address (for invoice)" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <div className="md:col-span-3">
+              <Input placeholder="Address (for invoice)" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
+            </div>
+            <Input placeholder="City" value={customerCity} onChange={(e) => setCustomerCity(e.target.value)} />
             <Select value={customerState} onChange={(e) => setCustomerState(e.target.value)}>
               <option value="">State (for GST)</option>
               {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
             </Select>
+            <Input placeholder="Pincode" value={customerPincode} onChange={(e) => setCustomerPincode(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="B2C">B2C</option>
               <option value="B2B">B2B</option>

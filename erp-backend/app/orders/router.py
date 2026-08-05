@@ -102,7 +102,9 @@ class SalesOrderUpdate(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
     customer_address: Optional[str] = None
+    customer_city: Optional[str] = None
     customer_state: Optional[str] = None
+    customer_pincode: Optional[str] = None
     category: Optional[str] = None
     payment_mode: PaymentMode = None
     lines: Optional[list[SalesOrderLineIn]] = None
@@ -276,8 +278,9 @@ def update_sales_order(order_id: int, payload: SalesOrderUpdate, db: Session = D
     order = db.get(SalesOrder, order_id)
     if order is None:
         raise HTTPException(404, "SalesOrder not found")
-    if order.status != SalesOrderStatus.DRAFT.value:
-        raise HTTPException(400, "Can only update SalesOrder in DRAFT status")
+    if order.status not in (SalesOrderStatus.DRAFT.value, SalesOrderStatus.FULFILLED.value):
+        raise HTTPException(400, "Can only update SalesOrder in DRAFT or FULFILLED status")
+    
     payload_data = payload.model_dump(exclude_unset=True)
     
     if "lines" in payload_data:
