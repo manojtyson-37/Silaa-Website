@@ -55,7 +55,12 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
     throw new ApiError(res.status, `${res.status} ${path}: ${msg}`, detail);
   }
   if (res.status === 204) return undefined as T;
-  return res.json();
+  try {
+    return await res.json();
+  } catch {
+    // Server returned non-JSON body (e.g. Vercel error page); treat as unknown error
+    throw new ApiError(res.status, `${res.status} ${path}: unexpected non-JSON response`, undefined);
+  }
 }
 
 // Reads that don't need to be instant-fresh: short revalidate window + a tag so
