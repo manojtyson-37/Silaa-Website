@@ -75,10 +75,18 @@ export default function ProformaPageClient({ token }: Props) {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this proforma invoice?")) return;
+  const handleDelete = async (id: number, status: string) => {
+    const isDeletable = status === "draft" || status === "cancelled";
+    const msg = isDeletable
+      ? "Delete this proforma invoice? This cannot be undone."
+      : "This invoice is not in Draft/Cancelled status. It will be cancelled first, then deleted. Continue?";
+    if (!confirm(msg)) return;
     try {
       const tok = getClientToken();
+      // Cancel first if not already in a deletable status
+      if (!isDeletable) {
+        await api.post(`/proforma-invoices/${id}/status`, { status: "cancelled" }, tok);
+      }
       await api.delete(`/proforma-invoices/${id}`, tok);
       mutate();
     } catch (e) {
@@ -175,14 +183,12 @@ export default function ProformaPageClient({ token }: Props) {
                     >
                       View / Print
                     </Link>
-                    {(pi.status === "draft" || pi.status === "cancelled") && (
-                      <button
-                        onClick={() => handleDelete(pi.id)}
+                    <button
+                        onClick={() => handleDelete(pi.id, pi.status)}
                         className="text-xs px-3 py-1.5 rounded-lg text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors"
                       >
                         Delete
                       </button>
-                    )}
                   </div>
                 </Card>
               );
