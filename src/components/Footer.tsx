@@ -81,16 +81,6 @@ export default function Footer() {
                 Instagram — @silacollective_
               </a>
             </li>
-            <li>
-              <a
-                href="https://instagram.com/diva_by_divyaa"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link-sweep"
-              >
-                Instagram — @diva_by_divyaa
-              </a>
-            </li>
           </ul>
         </div>
       </div>

@@ -3,8 +3,13 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import type { Product } from "@/lib/catalog";
-import { price, compareAt } from "@/lib/catalog";
+import type { Product, Variant } from "@/lib/catalog";
+import { price, compareAt, productCategory } from "@/lib/catalog";
+
+// Baby/kid sizes are recorded as an age range ("6-12 months", "2-3 years");
+// adult sizes are letter codes. Splitting on this lets a combo product ask
+// for both a mom size and a baby size instead of one mixed size list.
+const BABY_SIZE_RE = /month|year/i;
 
 function inr(n: number) {
   return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
@@ -13,6 +18,7 @@ function inr(n: number) {
 export default function ProductView({ product }: { product: Product }) {
   const { add } = useCart();
   const [imgIdx, setImgIdx] = useState(0);
+  const isCombo = productCategory(product) === "combo";
   const firstAvailable = product.variants.find((v) => v.available);
   const [variantId, setVariantId] = useState<number | null>(
     firstAvailable?.id ?? null
@@ -35,15 +41,56 @@ export default function ProductView({ product }: { product: Product }) {
     colors.length > 1 ? product.variants.filter((v) => v.color === color) : product.variants;
   const canBuy = sizeVariants.some((v) => v.available);
 
+  const babyVariants = sizeVariants.filter((v) => BABY_SIZE_RE.test(v.size ?? v.title));
+  const momVariants = sizeVariants.filter((v) => !BABY_SIZE_RE.test(v.size ?? v.title));
+  const [momVariantId, setMomVariantId] = useState<number | null>(
+    momVariants.find((v) => v.available)?.id ?? null
+  );
+  const [babyVariantId, setBabyVariantId] = useState<number | null>(
+    babyVariants.find((v) => v.available)?.id ?? null
+  );
+  const momSelected = momVariants.find((v) => v.id === momVariantId);
+  const babySelected = babyVariants.find((v) => v.id === babyVariantId);
+  const comboCanBuy = momVariants.some((v) => v.available) && babyVariants.some((v) => v.available);
+
   const selected = product.variants.find((v) => v.id === variantId);
   const variantPrice = selected?.price ? Number(selected.price) : 0;
-  const p = variantPrice > 0 ? variantPrice : price(product);
+  const comboPrice =
+    (momSelected?.price ? Number(momSelected.price) : 0) +
+    (babySelected?.price ? Number(babySelected.price) : 0);
+  const p = isCombo
+    ? comboPrice || price(product)
+    : variantPrice > 0
+      ? variantPrice
+      : price(product);
   const cmpRaw = selected?.compare_at_price;
   const rootCmp = compareAt(product);
-  const cmp = cmpRaw ? (Number(cmpRaw) > p ? Number(cmpRaw) : null) : rootCmp;
+  const cmp = isCombo ? null : cmpRaw ? (Number(cmpRaw) > p ? Number(cmpRaw) : null) : rootCmp;
   const mainImg = product.images[imgIdx]?.src;
 
+  function addLine(v: Variant, role: string) {
+    add({
+      variantId: v.id,
+      productId: product.id,
+      handle: product.handle,
+      title: `${product.title} — ${role}`,
+      size: v.size ?? v.title,
+      price: v.price ? Number(v.price) : price(product),
+      image: product.images[0]?.src ?? "",
+      qty: 1,
+    });
+  }
+
   function handleAdd() {
+    if (isCombo) {
+      if (!momSelected || !babySelected) {
+        setError(true);
+        return;
+      }
+      addLine(momSelected, "Mom");
+      addLine(babySelected, "Baby");
+      return;
+    }
     if (!selected) {
       setError(true);
       return;
@@ -142,50 +189,112 @@ export default function ProductView({ product }: { product: Product }) {
           </div>
         )}
 
-        <div className="mt-8">
-          <p className="text-xs uppercase tracking-[0.2em] text-smoke mb-3">
-            Select size
-            {colors.length === 1 && (
-              <span className="ml-2 normal-case tracking-normal">· {colors[0]}</span>
-            )}
-          </p>
-          <div className="flex flex-wrap gap-2.5">
-            {sizeVariants.map((v) => (
-              <button
-                key={v.id}
-                disabled={!v.available}
-                onClick={() => {
-                  setVariantId(v.id);
-                  setError(false);
-                }}
-                className={`px-5 py-3 text-sm border transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:line-through ${
-                  variantId === v.id
-                    ? "bg-ink text-ivory border-ink"
-                    : "border-ink/25 hover:border-ink"
-                }`}
-              >
-                {v.size ?? v.title}
-              </button>
-            ))}
-          </div>
-          {error && (
-            <p className="text-red-600 text-xs mt-2">Please select a size.</p>
-          )}
-          {!canBuy && (
-            <p className="text-smoke text-xs mt-3 uppercase tracking-[0.15em]">
-              {colors.length > 1
-                ? `Sold out in ${color} — try another colour.`
-                : "Sold out — every size is currently unavailable."}
+        {isCombo ? (
+          <>
+            <div className="mt-8">
+              <p className="text-xs uppercase tracking-[0.2em] text-smoke mb-3">
+                Mom's size
+              </p>
+              <div className="flex flex-wrap gap-2.5">
+                {momVariants.map((v) => (
+                  <button
+                    key={v.id}
+                    disabled={!v.available}
+                    onClick={() => {
+                      setMomVariantId(v.id);
+                      setError(false);
+                    }}
+                    className={`px-5 py-3 text-sm border transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:line-through ${
+                      momVariantId === v.id
+                        ? "bg-ink text-ivory border-ink"
+                        : "border-ink/25 hover:border-ink"
+                    }`}
+                  >
+                    {v.size ?? v.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <p className="text-xs uppercase tracking-[0.2em] text-smoke mb-3">
+                Baby's size
+              </p>
+              <div className="flex flex-wrap gap-2.5">
+                {babyVariants.map((v) => (
+                  <button
+                    key={v.id}
+                    disabled={!v.available}
+                    onClick={() => {
+                      setBabyVariantId(v.id);
+                      setError(false);
+                    }}
+                    className={`px-5 py-3 text-sm border transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:line-through ${
+                      babyVariantId === v.id
+                        ? "bg-ink text-ivory border-ink"
+                        : "border-ink/25 hover:border-ink"
+                    }`}
+                  >
+                    {v.size ?? v.title}
+                  </button>
+                ))}
+              </div>
+              {error && (
+                <p className="text-red-600 text-xs mt-2">Please select both sizes.</p>
+              )}
+              {!comboCanBuy && (
+                <p className="text-smoke text-xs mt-3 uppercase tracking-[0.15em]">
+                  Sold out — every size is currently unavailable.
+                </p>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="mt-8">
+            <p className="text-xs uppercase tracking-[0.2em] text-smoke mb-3">
+              Select size
+              {colors.length === 1 && (
+                <span className="ml-2 normal-case tracking-normal">· {colors[0]}</span>
+              )}
             </p>
-          )}
-        </div>
+            <div className="flex flex-wrap gap-2.5">
+              {sizeVariants.map((v) => (
+                <button
+                  key={v.id}
+                  disabled={!v.available}
+                  onClick={() => {
+                    setVariantId(v.id);
+                    setError(false);
+                  }}
+                  className={`px-5 py-3 text-sm border transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:line-through ${
+                    variantId === v.id
+                      ? "bg-ink text-ivory border-ink"
+                      : "border-ink/25 hover:border-ink"
+                  }`}
+                >
+                  {v.size ?? v.title}
+                </button>
+              ))}
+            </div>
+            {error && (
+              <p className="text-red-600 text-xs mt-2">Please select a size.</p>
+            )}
+            {!canBuy && (
+              <p className="text-smoke text-xs mt-3 uppercase tracking-[0.15em]">
+                {colors.length > 1
+                  ? `Sold out in ${color} — try another colour.`
+                  : "Sold out — every size is currently unavailable."}
+              </p>
+            )}
+          </div>
+        )}
 
         <button
           onClick={handleAdd}
-          disabled={!canBuy}
+          disabled={isCombo ? !comboCanBuy : !canBuy}
           className="mt-8 w-full bg-ink text-ivory py-5 text-xs uppercase tracking-[0.3em] hover:bg-gold transition-colors duration-300 cursor-pointer disabled:cursor-not-allowed disabled:bg-smoke/40 disabled:hover:bg-smoke/40"
         >
-          {canBuy ? `Add to bag — ${inr(p)}` : "Sold out"}
+          {(isCombo ? comboCanBuy : canBuy) ? `Add to bag — ${inr(p)}` : "Sold out"}
         </button>
         <p className="mt-3 text-center text-[11px] text-smoke uppercase tracking-[0.15em]">
           COD available · Free shipping on prepaid orders
