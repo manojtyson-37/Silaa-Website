@@ -43,6 +43,14 @@ export default function ProductView({ product }: { product: Product }) {
 
   const babyVariants = sizeVariants.filter((v) => BABY_SIZE_RE.test(v.size ?? v.title));
   const momVariants = sizeVariants.filter((v) => !BABY_SIZE_RE.test(v.size ?? v.title));
+  // Some legacy combo products were never split into separate mom/baby size
+  // variants — a single variant like "S / 6-12 months" carries both sizes in
+  // one title. The regex above would file that whole label under "baby" and
+  // leave momVariants empty, which would brick the dual selector (permanently
+  // "Sold out"). Only use the dual selector when the product genuinely has
+  // both dimensions to choose from; otherwise fall back to the single
+  // unified size list, same as any non-combo product.
+  const hasComboSplit = isCombo && momVariants.length > 0 && babyVariants.length > 0;
   const [momVariantId, setMomVariantId] = useState<number | null>(
     momVariants.find((v) => v.available)?.id ?? null
   );
@@ -55,17 +63,24 @@ export default function ProductView({ product }: { product: Product }) {
 
   const selected = product.variants.find((v) => v.id === variantId);
   const variantPrice = selected?.price ? Number(selected.price) : 0;
+  // Same fallback rule used everywhere a variant price might be blank
+  // (variants are sometimes cleared so a size inherits the root price) —
+  // shared between the displayed total and the actual cart line prices so
+  // the two can never disagree.
+  function effectivePrice(v: Variant): number {
+    return v.price ? Number(v.price) : price(product);
+  }
   const comboPrice =
-    (momSelected?.price ? Number(momSelected.price) : 0) +
-    (babySelected?.price ? Number(babySelected.price) : 0);
-  const p = isCombo
+    (momSelected ? effectivePrice(momSelected) : 0) +
+    (babySelected ? effectivePrice(babySelected) : 0);
+  const p = hasComboSplit
     ? comboPrice || price(product)
     : variantPrice > 0
       ? variantPrice
       : price(product);
   const cmpRaw = selected?.compare_at_price;
   const rootCmp = compareAt(product);
-  const cmp = isCombo ? null : cmpRaw ? (Number(cmpRaw) > p ? Number(cmpRaw) : null) : rootCmp;
+  const cmp = hasComboSplit ? null : cmpRaw ? (Number(cmpRaw) > p ? Number(cmpRaw) : null) : rootCmp;
   const mainImg = product.images[imgIdx]?.src;
 
   function addLine(v: Variant, role: string) {
@@ -75,14 +90,14 @@ export default function ProductView({ product }: { product: Product }) {
       handle: product.handle,
       title: `${product.title} — ${role}`,
       size: v.size ?? v.title,
-      price: v.price ? Number(v.price) : price(product),
+      price: effectivePrice(v),
       image: product.images[0]?.src ?? "",
       qty: 1,
     });
   }
 
   function handleAdd() {
-    if (isCombo) {
+    if (hasComboSplit) {
       if (!momSelected || !babySelected) {
         setError(true);
         return;
@@ -189,7 +204,7 @@ export default function ProductView({ product }: { product: Product }) {
           </div>
         )}
 
-        {isCombo ? (
+        {hasComboSplit ? (
           <>
             <div className="mt-8">
               <p className="text-xs uppercase tracking-[0.2em] text-smoke mb-3">
@@ -291,10 +306,10 @@ export default function ProductView({ product }: { product: Product }) {
 
         <button
           onClick={handleAdd}
-          disabled={isCombo ? !comboCanBuy : !canBuy}
+          disabled={hasComboSplit ? !comboCanBuy : !canBuy}
           className="mt-8 w-full bg-ink text-ivory py-5 text-xs uppercase tracking-[0.3em] hover:bg-gold transition-colors duration-300 cursor-pointer disabled:cursor-not-allowed disabled:bg-smoke/40 disabled:hover:bg-smoke/40"
         >
-          {(isCombo ? comboCanBuy : canBuy) ? `Add to bag — ${inr(p)}` : "Sold out"}
+          {(hasComboSplit ? comboCanBuy : canBuy) ? `Add to bag — ${inr(p)}` : "Sold out"}
         </button>
         <p className="mt-3 text-center text-[11px] text-smoke uppercase tracking-[0.15em]">
           COD available · Free shipping on prepaid orders
