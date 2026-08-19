@@ -10,7 +10,8 @@ import {
 } from "react";
 
 export type CartItem = {
-  variantId: number;
+  variantId: number;   // for combos: use negative comboId (e.g. -combo.id) as unique key
+  comboId?: number;    // set only for combo items
   productId: number;
   handle: string;
   title: string;

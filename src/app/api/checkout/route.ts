@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { priceItems, savePending, validateCustomer } from "@/lib/orders";
+import { priceItems, priceComboItems, savePending, validateCustomer } from "@/lib/orders";
+import type { ComboOrderItem } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 
@@ -26,16 +27,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid delivery details" }, { status: 400 });
   }
 
-  // Recompute amount server-side from the catalog — never trust client totals.
-  const priced = await priceItems(body.items, body.discountCode as string | undefined);
+  // Recompute amounts server-side — never trust client totals.
+  const hasVariants = Array.isArray(body.items) && (body.items as unknown[]).length > 0;
+  const hasComboItems = Array.isArray(body.comboItems) && (body.comboItems as unknown[]).length > 0;
+  if (!hasVariants && !hasComboItems) {
+    return NextResponse.json({ error: "Invalid cart" }, { status: 400 });
+  }
+
+  const priced = hasVariants
+    ? await priceItems(body.items, body.discountCode as string | undefined)
+    : { lines: [], amountPaise: 0, campaign: null };
   if (!priced) {
     return NextResponse.json({ error: "Invalid cart" }, { status: 400 });
   }
 
-  const itemsSummary = priced.lines
-    .map((l) => `${l.title} (${l.size}) x${l.qty}`)
-    .join("; ")
-    .slice(0, 255);
+  const pricedCombos: ComboOrderItem[] | null = hasComboItems
+    ? await priceComboItems(body.comboItems)
+    : [];
+  if (pricedCombos === null) {
+    return NextResponse.json({ error: "Invalid combo selection" }, { status: 400 });
+  }
+
+  const comboAmountPaise = pricedCombos.reduce((sum, i) => sum + Math.round(i.price * 100) * i.qty, 0);
+  const totalAmountPaise = priced.amountPaise + comboAmountPaise;
+
+  const itemsSummary = [
+    ...priced.lines.map((l) => `${l.title} (${l.size}) x${l.qty}`),
+    ...pricedCombos.map((c) => `${c.title} [combo] x${c.qty}`),
+  ].join("; ").slice(0, 255);
 
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
   let res: Response;
@@ -47,7 +66,7 @@ export async function POST(req: Request) {
         Authorization: `Basic ${auth}`,
       },
       body: JSON.stringify({
-        amount: priced.amountPaise,
+        amount: totalAmountPaise,
         currency: "INR",
         receipt: crypto.randomUUID().slice(0, 32),
         payment_capture: 1,
@@ -76,7 +95,8 @@ export async function POST(req: Request) {
     await savePending(order.id, {
       customer,
       items: priced.lines,
-      amount: priced.amountPaise / 100,
+      comboItems: pricedCombos,
+      amount: totalAmountPaise / 100,
       campaign: priced.campaign,
     });
   } catch (e) {

@@ -79,8 +79,11 @@ export default function CheckoutPage() {
     }
     if (items.length === 0) return;
 
+    const variantItems = items.filter((i) => !i.comboId);
+    const comboCartItems = items.filter((i) => i.comboId);
     const payload = {
-      items: items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
+      items: variantItems.map((i) => ({ variantId: i.variantId, qty: i.qty })),
+      comboItems: comboCartItems.map((i) => ({ comboId: i.comboId!, qty: i.qty })),
       customer: form,
       discountCode,
     };

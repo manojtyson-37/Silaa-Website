@@ -13,6 +13,8 @@ export type Customer = {
   pincode: string;
 };
 
+export type ComboOrderItem = { comboId: number; title: string; price: number; qty: number };
+
 export type OrderRecord = {
   ref: string;
   createdAt: string;
@@ -21,6 +23,7 @@ export type OrderRecord = {
   amount: number;
   customer: Customer;
   items: { variantId: number; erpVariantId?: number; title: string; size: string; price: number; qty: number }[];
+  comboItems?: ComboOrderItem[];
   campaign?: { id: string; title: string; discountCode: string | null; discountValue: number } | null;
   payment?: { razorpayOrderId: string; razorpayPaymentId: string };
 };
@@ -124,9 +127,43 @@ export async function priceItems(items: unknown, discountCode?: string):
 
 /** Stash cart + customer at order-creation time so /api/verify can finalize.
  *  Uses ERP DB (Supabase) instead of filesystem so Razorpay callbacks land on any serverless instance. */
+const ERP_DIRECT = "https://silaa-erp.duckdns.org";
+
+/** Validate combo items against ERP public endpoint — returns server-priced lines or null on invalid. */
+export async function priceComboItems(rawComboItems: unknown): Promise<ComboOrderItem[] | null> {
+  if (!Array.isArray(rawComboItems) || rawComboItems.length === 0) return [];
+  if (rawComboItems.length > 10) return null;
+  try {
+    const res = await fetch(`${ERP_DIRECT}/combos/public`);
+    if (!res.ok) return null;
+    const combos: Array<{ id: number; name: string; selling_price: string; is_active: boolean }> = await res.json();
+    const comboMap = new Map(combos.map((c) => [c.id, c]));
+    const result: ComboOrderItem[] = [];
+    for (const raw of rawComboItems) {
+      const comboId = Number((raw as Record<string, unknown>)?.comboId);
+      const qty = Math.floor(Number((raw as Record<string, unknown>)?.qty));
+      if (!Number.isFinite(comboId) || !Number.isFinite(qty) || qty < 1 || qty > 10) return null;
+      const combo = comboMap.get(comboId);
+      if (!combo || !combo.is_active) return null;
+      result.push({ comboId, title: combo.name, price: parseFloat(combo.selling_price), qty });
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+type PendingPayload = {
+  customer: Customer;
+  items: OrderRecord["items"];
+  comboItems?: ComboOrderItem[];
+  amount: number;
+  campaign?: OrderRecord["campaign"] | null;
+};
+
 export async function savePending(
   razorpayOrderId: string,
-  data: { customer: Customer; items: OrderRecord["items"]; amount: number; campaign?: OrderRecord["campaign"] | null }
+  data: PendingPayload
 ): Promise<void> {
   const res = await fetch(`${ERP_BASE}/api/erp/pending-orders`, {
     method: "POST",
@@ -138,7 +175,7 @@ export async function savePending(
 
 export async function takePending(
   razorpayOrderId: string
-): Promise<{ customer: Customer; items: OrderRecord["items"]; amount: number; campaign?: OrderRecord["campaign"] | null } | null> {
+): Promise<PendingPayload | null> {
   try {
     const res = await fetch(`${ERP_BASE}/api/erp/pending-orders/${encodeURIComponent(razorpayOrderId)}`, {
       method: "DELETE",
@@ -193,76 +230,53 @@ export async function saveOrder(
     }
   }
 
-  // Auto-Sync order to Silaa ERP (if erpVariantIds are present)
+  // Sync order to Silaa ERP via website key
   try {
-    const ERP_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const ADMIN_USER = process.env.ERP_ADMIN_USERNAME || "admin";
-    const ADMIN_PASS = process.env.ERP_ADMIN_PASSWORD;
+    const ERP_DIRECT = "https://silaa-erp.duckdns.org";
+    const WEBSITE_KEY = process.env.WEBSITE_ORDER_KEY;
+    if (!WEBSITE_KEY) {
+      console.error("WEBSITE_ORDER_KEY not set — skipping ERP sync for", ref);
+    } else {
+      const totalOriginalPrice = order.items.reduce((sum, i) => sum + i.price * i.qty, 0)
+        + (order.comboItems ?? []).reduce((sum, i) => sum + i.price * i.qty, 0);
+      const discountRatio = totalOriginalPrice > 0 ? (order.amount / 100) / totalOriginalPrice : 1;
 
-    // Fail closed: guessing "admin" only ever produced a failed login attempt
-    // against the live ERP on every order.
-    if (!ADMIN_PASS) {
-      console.error("ERP_ADMIN_PASSWORD is not set — skipping ERP order sync for", ref);
-      return ref;
-    }
-
-    // 1. Login to ERP
-    const loginRes = await fetch(`${ERP_URL}/api/erp/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: ADMIN_USER, password: ADMIN_PASS }),
-    });
-    
-    if (loginRes.ok) {
-      const { access_token } = await loginRes.json();
-      
-      // 2. Prepare Payload
-      const totalOriginalPrice = order.items.reduce((sum, item) => sum + item.price * item.qty, 0);
-      const discountRatio = totalOriginalPrice > 0 ? order.amount / totalOriginalPrice : 1;
-
-      const orderLines = order.items
-        .filter(item => item.erpVariantId) // Only sync items that have been mapped
-        .map(item => ({
-          variant_id: item.erpVariantId,
-          qty: item.qty,
-          unit_price: Number((item.price * discountRatio).toFixed(2)),
-          gst_percent: 5 // Default GST
+      const variantLines = order.items
+        .filter((i) => i.erpVariantId)
+        .map((i) => ({
+          variant_id: i.erpVariantId,
+          qty: i.qty,
+          unit_price: parseFloat((i.price * discountRatio).toFixed(2)),
         }));
-        
-      const unmappedItems = order.items.filter(item => !item.erpVariantId);
-      let finalAddress = order.customer.address;
-      if (unmappedItems.length > 0) {
-        const unmappedStr = unmappedItems.map(i => `${i.title} (Qty: ${i.qty})`).join(", ");
-        finalAddress = `${finalAddress}\n\n[WARNING: Order contains items missing from ERP catalogue: ${unmappedStr}]`;
-      }
 
-      const rawItemsStr = order.items.map(i => `${i.title} (Qty: ${i.qty})`).join(", ");
+      const comboLines = (order.comboItems ?? []).map((i) => ({
+        combo_id: i.comboId,
+        qty: i.qty,
+        unit_price: parseFloat((i.price * discountRatio).toFixed(2)),
+      }));
 
       const payload = {
         customer_name: order.customer.name,
         customer_phone: order.customer.phone,
-        customer_address: finalAddress,
+        customer_address: order.customer.address,
         customer_state: order.customer.city || "Website Order",
-        category: "B2C",
-        campaign_id: order.campaign?.id || null,
-        lines: orderLines,
-        created_by: "Website Integration",
-        razorpay_order_id: order.payment?.razorpayOrderId || null,
-        raw_items: rawItemsStr,
-        total_amount: order.amount / 100, // Convert from paise to rupees
-        discount_amount: order.campaign?.discountValue ? order.campaign.discountValue / 100 : null,
-        discount_code: order.campaign?.discountCode || null,
+        items: [...variantLines, ...comboLines],
+        razorpay_order_id: order.payment?.razorpayOrderId ?? null,
+        discount_code: order.campaign?.discountCode ?? null,
       };
 
-      // 3. Post to ERP
-        await fetch(`${ERP_URL}/api/erp/sales-orders`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${access_token}`
-          },
-          body: JSON.stringify(payload),
-        });
+      const erpRes = await fetch(`${ERP_DIRECT}/orders/website`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Website-Key": WEBSITE_KEY,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!erpRes.ok) {
+        const txt = await erpRes.text().catch(() => "");
+        console.error(`ERP sync failed ${erpRes.status}:`, txt);
+      }
     }
   } catch (e) {
     console.error("Failed to sync order to ERP:", e);
