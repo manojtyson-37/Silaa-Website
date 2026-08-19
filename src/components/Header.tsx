@@ -10,7 +10,6 @@ const nav = [
   { href: "/shop?c=women", label: "Women" },
   { href: "/shop?c=kids", label: "Kids" },
   { href: "/shop?c=combo", label: "Mom & Girl" },
-  { href: "/combos", label: "Combo Sets" },
   { href: "/about", label: "Our Story" },
 ];
 
