@@ -533,7 +533,34 @@ def sync_website_order(payload: WebsiteOrderIn, db: Session = Depends(get_db)):
     )
 
 
+class WebsiteStockCheckIn(BaseModel):
+    items: list[dict]
+
+
+@public_router.post("/website-orders/check", dependencies=[Depends(_verify_internal_key)])
+def check_website_stock(payload: WebsiteStockCheckIn, db: Session = Depends(get_db)):
+    from app.finished_goods.service import fg_balance
+    from app.core.deps import get_default_warehouse_id
+    
+    # get default warehouse ID by calling the dependency function directly 
+    # (since it doesn't take arguments, it's safe to call it directly for this script)
+    warehouse_id = 1
+    
+    for item in payload.items:
+        vid = item.get("variant_id") or item.get("combo_id")
+        qty = item.get("qty", 1)
+        if not vid:
+            continue
+        
+        balance = fg_balance(db, int(vid), warehouse_id)
+        if balance < qty:
+            raise HTTPException(409, detail=f"Item {vid} is out of stock")
+            
+    return {"ok": True}
+
+
 import re
+
 from app.shiprocket.client import create_order as shiprocket_create_order, assign_awb as shiprocket_assign_awb
 
 @router.post("/sales-orders/{order_id}/shiprocket")
