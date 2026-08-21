@@ -56,6 +56,9 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ ref });
   } catch (e) {
+    if ((e as { code?: string }).code === "OUT_OF_STOCK") {
+      return NextResponse.json({ error: (e as Error).message || "Item out of stock" }, { status: 409 });
+    }
     console.error("COD order save failed:", e);
     return NextResponse.json({ error: "Could not place order" }, { status: 500 });
   }

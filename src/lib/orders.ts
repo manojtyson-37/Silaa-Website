@@ -264,59 +264,65 @@ export async function saveOrder(
     }
   }
 
-  // Sync order to Silaa ERP via website key
-  try {
-    const ERP_DIRECT = "https://silaa-erp.duckdns.org";
-    const WEBSITE_KEY = process.env.WEBSITE_ORDER_KEY;
-    if (!WEBSITE_KEY) {
-      console.error("WEBSITE_ORDER_KEY not set — skipping ERP sync for", ref);
-    } else {
-      const totalOriginalPrice = order.items.reduce((sum, i) => sum + i.price * i.qty, 0)
-        + (order.comboItems ?? []).reduce((sum, i) => sum + i.price * i.qty, 0);
-      const discountRatio = totalOriginalPrice > 0 ? (order.amount / 100) / totalOriginalPrice : 1;
+  // Sync order to Silaa ERP via website key.
+  // NOTE: not wrapped in a catch — OUT_OF_STOCK must propagate to callers.
+  const WEBSITE_KEY = process.env.WEBSITE_ORDER_KEY;
+  if (!WEBSITE_KEY) {
+    console.error("WEBSITE_ORDER_KEY not set — skipping ERP sync for", ref);
+  } else {
+    const totalOriginalPrice =
+      order.items.reduce((sum, i) => sum + i.price * i.qty, 0) +
+      (order.comboItems ?? []).reduce((sum, i) => sum + i.price * i.qty, 0);
+    const discountRatio = totalOriginalPrice > 0 ? order.amount / totalOriginalPrice : 1;
 
-      const variantLines = order.items
-        .filter((i) => i.erpVariantId)
-        .map((i) => ({
-          variant_id: i.erpVariantId,
-          qty: i.qty,
-          unit_price: parseFloat((i.price * discountRatio).toFixed(2)),
-        }));
-
-      const comboLines = (order.comboItems ?? []).map((i) => ({
-        combo_id: i.comboId,
+    const variantLines = order.items
+      .filter((i) => i.erpVariantId)
+      .map((i) => ({
+        variant_id: i.erpVariantId,
         qty: i.qty,
         unit_price: parseFloat((i.price * discountRatio).toFixed(2)),
       }));
 
-      const payload = {
-        customer_name: order.customer.name,
-        customer_phone: order.customer.phone,
-        customer_address: order.customer.address,
-        customer_state: order.customer.city || "Website Order",
-        items: [...variantLines, ...comboLines],
-        razorpay_order_id: order.payment?.razorpayOrderId ?? null,
-        discount_code: order.campaign?.discountCode ?? null,
-      };
+    if (order.items.length > 0 && variantLines.length === 0) {
+      console.error(
+        `ERP sync skipped for ${ref}: no items have erpVariantId set in Sanity. ` +
+        `Set "ERP Variant ID" on each product variant in Sanity Studio.`
+      );
+    }
 
-      const erpRes = await fetch(`${ERP_DIRECT}/orders/website`, {
+    const comboLines = (order.comboItems ?? []).map((i) => ({
+      combo_id: i.comboId,
+      qty: i.qty,
+      unit_price: parseFloat((i.price * discountRatio).toFixed(2)),
+    }));
+
+    const payload = {
+      customer_name: order.customer.name,
+      customer_phone: order.customer.phone,
+      customer_address: order.customer.address,
+      customer_state: order.customer.city || "Website Order",
+      items: [...variantLines, ...comboLines],
+    };
+
+    let erpRes: Response;
+    try {
+      erpRes = await fetch(`${ERP_DIRECT}/orders/website`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Website-Key": WEBSITE_KEY,
-        },
+        headers: { "Content-Type": "application/json", "X-Website-Key": WEBSITE_KEY },
         body: JSON.stringify(payload),
       });
-      if (!erpRes.ok) {
-        const txt = await erpRes.text().catch(() => "");
-        if (erpRes.status === 409) {
-          throw Object.assign(new Error(txt || "Out of stock"), { code: "OUT_OF_STOCK" });
-        }
-        console.error(`ERP sync failed ${erpRes.status}:`, txt);
-      }
+    } catch (networkErr) {
+      console.error("ERP sync network error — allowing order through:", networkErr);
+      return ref;
     }
-  } catch (e) {
-    console.error("Failed to sync order to ERP:", e);
+
+    if (!erpRes.ok) {
+      const txt = await erpRes.text().catch(() => "");
+      if (erpRes.status === 409) {
+        throw Object.assign(new Error(txt || "Item out of stock"), { code: "OUT_OF_STOCK" });
+      }
+      console.error(`ERP sync failed ${erpRes.status}:`, txt);
+    }
   }
 
   return ref;
