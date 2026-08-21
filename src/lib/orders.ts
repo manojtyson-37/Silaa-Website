@@ -127,7 +127,6 @@ export async function priceItems(items: unknown, discountCode?: string):
 
 /** Stash cart + customer at order-creation time so /api/verify can finalize.
  *  Uses ERP DB (Supabase) instead of filesystem so Razorpay callbacks land on any serverless instance. */
-const ERP_DIRECT = "https://silaa-erp.duckdns.org";
 
 type CheckItem =
   | { variant_id: number; qty: number }
@@ -168,25 +167,10 @@ export async function checkStock(
 export async function priceComboItems(rawComboItems: unknown): Promise<ComboOrderItem[] | null> {
   if (!Array.isArray(rawComboItems) || rawComboItems.length === 0) return [];
   if (rawComboItems.length > 10) return null;
-  try {
-    const res = await fetch(`${ERP_DIRECT}/combos/public`);
-    if (!res.ok) return null;
-    const combos: Array<{ id: number; name: string; selling_price: string; is_active: boolean }> = await res.json();
-    const comboMap = new Map(combos.map((c) => [c.id, c]));
-    const result: ComboOrderItem[] = [];
-    for (const raw of rawComboItems) {
-      const comboId = Number((raw as Record<string, unknown>)?.comboId);
-      const qty = Math.floor(Number((raw as Record<string, unknown>)?.qty));
-      if (!Number.isFinite(comboId) || !Number.isFinite(qty) || qty < 1 || qty > 10) return null;
-      const combo = comboMap.get(comboId);
-      if (!combo || !combo.is_active) return null;
-      result.push({ comboId, title: combo.name, price: parseFloat(combo.selling_price), qty });
-    }
-    return result;
-  } catch {
-    return null;
-  }
+  // Combos are currently unsupported on the new ERP backend.
+  return [];
 }
+
 
 type PendingPayload = {
   customer: Customer;
