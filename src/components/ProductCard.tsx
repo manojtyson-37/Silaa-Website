@@ -24,6 +24,7 @@ export default function ProductCard({
   const cmp = compareAt(product);
   const isNew = isNewLaunch(product);
   const availableSizes = product.variants.filter((v) => v.available);
+  const isAvailable = availableSizes.length > 0;
   // With several colours the size name alone repeats itself in the strip, so keep
   // the full "Small / White" label there.
   const multiColour =
@@ -56,12 +57,17 @@ export default function ProductCard({
             className="object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700 scale-105"
           />
         )}
-        {isNew && (
+        {!isAvailable && (
+          <span className="absolute top-3 left-3 bg-red-600/90 text-ivory text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 backdrop-blur-sm z-10">
+            Sold out
+          </span>
+        )}
+        {isAvailable && isNew && (
           <span className="absolute top-3 left-3 bg-ink text-ivory text-[10px] tracking-[0.2em] uppercase px-3 py-1.5">
             New
           </span>
         )}
-        {cmp && (
+        {cmp && isAvailable && (
           <span className="absolute top-3 right-3 bg-gold text-ivory text-[10px] tracking-[0.15em] uppercase px-3 py-1.5">
             −{Math.round(((cmp - p) / cmp) * 100)}%
           </span>
@@ -111,10 +117,10 @@ export default function ProductCard({
           {product.title}
         </Link>
         <p className="text-sm whitespace-nowrap">
-          {cmp && (
+          {cmp && isAvailable && (
             <span className="line-through text-smoke/50 mr-2">{inr(cmp)}</span>
           )}
-          <span className="font-medium">{inr(p)}</span>
+          <span className={`font-medium ${!isAvailable ? 'opacity-50' : ''}`}>{inr(p)}</span>
         </p>
       </div>
     </div>
