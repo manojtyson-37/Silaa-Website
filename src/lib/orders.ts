@@ -129,6 +129,40 @@ export async function priceItems(items: unknown, discountCode?: string):
  *  Uses ERP DB (Supabase) instead of filesystem so Razorpay callbacks land on any serverless instance. */
 const ERP_DIRECT = "https://silaa-erp.duckdns.org";
 
+type CheckItem =
+  | { variant_id: number; qty: number }
+  | { combo_id: number; qty: number };
+
+/** Pre-flight stock check against ERP. Returns ok:false with reason on 409. */
+export async function checkStock(
+  pricedLines: OrderRecord["items"],
+  combos: ComboOrderItem[]
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const WEBSITE_KEY = process.env.WEBSITE_ORDER_KEY;
+  if (!WEBSITE_KEY) return { ok: true }; // key not configured — skip check
+
+  const items: CheckItem[] = [
+    ...pricedLines.filter((l) => l.erpVariantId).map((l) => ({ variant_id: l.erpVariantId as number, qty: l.qty })),
+    ...combos.map((c) => ({ combo_id: c.comboId, qty: c.qty })),
+  ];
+  if (items.length === 0) return { ok: true };
+
+  try {
+    const res = await fetch(`${ERP_DIRECT}/orders/website/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Website-Key": WEBSITE_KEY },
+      body: JSON.stringify({ items }),
+    });
+    if (res.status === 409) {
+      const err = await res.json().catch(() => ({ detail: "Item out of stock" }));
+      return { ok: false, reason: (err as { detail?: string }).detail ?? "Item out of stock" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: true }; // network error — allow through, ERP will catch at order time
+  }
+}
+
 /** Validate combo items against ERP public endpoint — returns server-priced lines or null on invalid. */
 export async function priceComboItems(rawComboItems: unknown): Promise<ComboOrderItem[] | null> {
   if (!Array.isArray(rawComboItems) || rawComboItems.length === 0) return [];
@@ -275,6 +309,9 @@ export async function saveOrder(
       });
       if (!erpRes.ok) {
         const txt = await erpRes.text().catch(() => "");
+        if (erpRes.status === 409) {
+          throw Object.assign(new Error(txt || "Out of stock"), { code: "OUT_OF_STOCK" });
+        }
         console.error(`ERP sync failed ${erpRes.status}:`, txt);
       }
     }

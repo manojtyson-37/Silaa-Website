@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { priceItems, priceComboItems, savePending, validateCustomer } from "@/lib/orders";
+import { priceItems, priceComboItems, savePending, validateCustomer, checkStock } from "@/lib/orders";
 import type { ComboOrderItem } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +50,11 @@ export async function POST(req: Request) {
 
   const comboAmountPaise = pricedCombos.reduce((sum, i) => sum + Math.round(i.price * 100) * i.qty, 0);
   const totalAmountPaise = priced.amountPaise + comboAmountPaise;
+
+  const stock = await checkStock(priced.lines, pricedCombos);
+  if (!stock.ok) {
+    return NextResponse.json({ error: stock.reason }, { status: 409 });
+  }
 
   const itemsSummary = [
     ...priced.lines.map((l) => `${l.title} (${l.size}) x${l.qty}`),
