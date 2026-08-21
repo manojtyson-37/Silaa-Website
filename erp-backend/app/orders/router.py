@@ -18,6 +18,7 @@ from app.orders.service import InsufficientStockError, cancel_order, create_sale
 from app.style_variant.models import StyleVariant
 
 router = APIRouter(tags=["orders"])
+public_router = APIRouter(tags=["orders-public"])
 
 
 class SalesOrderLineIn(BaseModel):
@@ -472,7 +473,7 @@ class PendingOrderIn(BaseModel):
 _MAX_PAYLOAD_BYTES = 65_536
 
 
-@router.post("/pending-orders", status_code=201, dependencies=[Depends(_verify_internal_key)])
+@public_router.post("/pending-orders", status_code=201, dependencies=[Depends(_verify_internal_key)])
 def create_pending_order(body: PendingOrderIn, db: Session = Depends(get_db)):
     if not body.razorpay_order_id.startswith("order_"):
         raise HTTPException(400, "Invalid razorpay_order_id format")
@@ -489,7 +490,7 @@ def create_pending_order(body: PendingOrderIn, db: Session = Depends(get_db)):
     return {"ok": True}
 
 
-@router.delete("/pending-orders/{razorpay_order_id}", dependencies=[Depends(_verify_internal_key)])
+@public_router.delete("/pending-orders/{razorpay_order_id}", dependencies=[Depends(_verify_internal_key)])
 def take_pending_order(razorpay_order_id: str, db: Session = Depends(get_db)):
     record = db.get(PendingOrder, razorpay_order_id)
     if record is None:
@@ -498,6 +499,39 @@ def take_pending_order(razorpay_order_id: str, db: Session = Depends(get_db)):
     db.delete(record)
     db.commit()
     return payload
+
+
+class WebsiteOrderIn(BaseModel):
+    customer_name: str
+    customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
+    customer_state: Optional[str] = None
+    items: list[dict]
+
+
+@public_router.post("/website-orders", status_code=201, dependencies=[Depends(_verify_internal_key)])
+def sync_website_order(payload: WebsiteOrderIn, db: Session = Depends(get_db)):
+    lines = []
+    for item in payload.items:
+        lines.append({
+            "variant_id": item.get("variant_id") or item.get("combo_id"),
+            "qty": item.get("qty", 1),
+            "unit_price": Decimal(str(item.get("unit_price", 0))),
+            "gst_percent": Decimal("5")
+        })
+        
+    return create_sales_order(
+        db,
+        customer_name=payload.customer_name,
+        customer_phone=payload.customer_phone,
+        customer_address=payload.customer_address,
+        customer_state=payload.customer_state,
+        lines=lines,
+        created_by="Website Integration",
+        category="B2C",
+        payment_mode="prepaid"
+    )
+
 
 import re
 from app.shiprocket.client import create_order as shiprocket_create_order, assign_awb as shiprocket_assign_awb

@@ -113,6 +113,8 @@ app.include_router(style_router, dependencies=_protected)
 app.include_router(bom_router, dependencies=_protected)
 app.include_router(production_router, dependencies=_protected)
 app.include_router(finished_goods_router, dependencies=_protected)
+from app.orders.router import router as orders_router, public_router as orders_public_router
+app.include_router(orders_public_router)
 app.include_router(orders_router, dependencies=_protected)
 app.include_router(dashboard_router, dependencies=_protected)
 app.include_router(reports_router, dependencies=_protected)

@@ -306,9 +306,10 @@ export async function saveOrder(
 
     let erpRes: Response;
     try {
-      erpRes = await fetch(`${ERP_DIRECT}/orders/website`, {
+      const INTERNAL_KEY = process.env.ERP_INTERNAL_KEY || "development_fallback_key";
+      erpRes = await fetch(`${ERP_BASE}/api/erp/website-orders`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Website-Key": WEBSITE_KEY },
+        headers: { "Content-Type": "application/json", "X-Internal-Key": INTERNAL_KEY },
         body: JSON.stringify(payload),
       });
     } catch (networkErr) {
