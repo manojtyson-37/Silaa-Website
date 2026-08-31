@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { api } from "@/lib/api";
 
 export default function TrafficTracker() {
   const pathname = usePathname();
@@ -21,10 +20,14 @@ export default function TrafficTracker() {
     // Since this is the storefront and might not have a token, we might need a public endpoint
     // We added this to the dashboard router, which is protected? 
     // Let me check if the dashboard router is protected by token.
-    api.post("/analytics/track", {
-      path: pathname,
-      referrer: referrer,
-      session_id: sessionId,
+    fetch("https://erp-api.silacollective.in/analytics/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: pathname,
+        referrer: referrer,
+        session_id: sessionId,
+      })
     }).catch(err => console.error("Failed to track traffic:", err));
     
   }, [pathname]);
