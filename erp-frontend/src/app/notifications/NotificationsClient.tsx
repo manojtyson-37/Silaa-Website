@@ -89,7 +89,6 @@ export default function NotificationsClient() {
                 {!notif.is_read && (
                   <Button 
                     variant="ghost" 
-                    size="sm" 
                     onClick={() => markAsRead(notif.id)}
                     disabled={marking === notif.id}
                     className="h-8 text-xs px-2"
