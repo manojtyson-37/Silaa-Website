@@ -80,7 +80,7 @@ function NavLink({ href, label, icon: Icon, active, badgeCount }: NavItem & { ac
 export default function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: unreadData } = useERP<{count: number}>("/notifications/unread-count", getClientToken(), { refreshInterval: 30000 });
+  const { data: unreadData } = useERP<{count: number}>("/notifications/unread-count", getClientToken() ?? "");
   const unreadCount = unreadData?.count || 0;
 
   return (

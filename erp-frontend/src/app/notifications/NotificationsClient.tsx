@@ -99,8 +99,7 @@ export default function NotificationsClient() {
                 
                 {notif.link_url && (
                   <Button 
-                    variant="secondary" 
-                    size="sm" 
+                    variant="outline" 
                     className="h-8 text-xs px-2 gap-1"
                     onClick={() => {
                       if (!notif.is_read) markAsRead(notif.id);

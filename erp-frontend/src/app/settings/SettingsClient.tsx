@@ -7,7 +7,7 @@ import { getClientToken } from "@/lib/clientAuth";
 import { Card, Input, Button, Select } from "@/components/ui";
 
 export default function SettingsClient() {
-  const token = getClientToken();
+  const token = getClientToken() ?? "";
   const { data: settingsData = [], mutate } = useERP<CompanySetting[]>("/company-settings", token);
   const { data: pickupData } = useERP<{locations: string[]}>("/shiprocket-pickup-locations", token);
   const pickupOptions = pickupData?.locations || [];
