@@ -20,7 +20,7 @@ export default function TrafficTracker() {
     // Since this is the storefront and might not have a token, we might need a public endpoint
     // We added this to the dashboard router, which is protected? 
     // Let me check if the dashboard router is protected by token.
-    fetch("https://erp-api.silacollective.in/analytics/track", {
+    fetch("https://silaa-website.vercel.app/api/erp/analytics/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

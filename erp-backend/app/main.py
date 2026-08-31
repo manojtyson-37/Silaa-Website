@@ -23,6 +23,8 @@ from app.expenses import models as expenses_models  # noqa: F401
 from app.auth import models as auth_models  # noqa: F401
 from app.customers import models as customers_models  # noqa: F401
 from app.proforma import models as proforma_models  # noqa: F401
+from app.notifications import models as notifications_models  # noqa: F401
+from app.dashboard import models as dashboard_models  # noqa: F401
 
 from app import wiring
 from app.procurement.router import router as procurement_router
@@ -128,6 +130,7 @@ from app.customers.router import public_router as customers_public_router
 app.include_router(customers_public_router)
 app.include_router(customers_router, dependencies=_protected)
 app.include_router(proforma_router, dependencies=_protected)
+app.include_router(notifications_router, dependencies=_protected)
 app.include_router(users_router) # dependencies are internal to users router
 
 
