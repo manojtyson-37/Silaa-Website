@@ -24,12 +24,23 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [resolutionType, setResolutionType] = useState<"return" | "replace" | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const openMenu = () => {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    }
+    setMenuOpen(true);
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
+          triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
     };
@@ -170,15 +181,20 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
 
         {/* Status actions menu */}
         {(status === "draft" || status === "fulfilled" || status === "cancelled") && (
-          <div className="relative" ref={menuRef}>
+          <div>
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
+              ref={triggerRef}
+              onClick={() => menuOpen ? setMenuOpen(false) : openMenu()}
               className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white hover:shadow-sm transition-all cursor-pointer"
             >
               <MoreVertical size={15} />
             </button>
-            {menuOpen && (
-              <div className="absolute right-0 mt-1 w-32 bg-white border border-border rounded-lg shadow-md z-50 overflow-hidden py-1">
+            {menuOpen && typeof document !== "undefined" && createPortal(
+              <div
+                ref={menuRef}
+                style={{ top: menuPos.top, right: menuPos.right }}
+                className="fixed w-32 bg-white border border-border rounded-lg shadow-lg z-[9999] overflow-hidden py-1"
+              >
                 {status === "draft" && (
                   <>
                     <button
@@ -233,7 +249,8 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
                     Shiprocket
                   </button>
                 )}
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         )}
