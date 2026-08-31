@@ -16,10 +16,15 @@ type Line =
 const emptyLine = (): Line => ({ is_custom: false, style_id: "", variant_id: "", qty: "1", unit_price: "", gst_percent: "5" });
 const emptyCustomLine = (): Line => ({ is_custom: true, custom_name: "", custom_notes: "", qty: "1", unit_price: "", gst_percent: "5" });
 
-function lineAmount(l: { qty: string; unit_price: string; gst_percent: string }) {
+function lineAmount(l: { qty: string; unit_price: string; gst_percent: string }, inclusive: boolean) {
   const qty = parseFloat(l.qty) || 0;
   const price = parseFloat(l.unit_price) || 0;
   const gst = parseFloat(l.gst_percent) || 0;
+  if (inclusive) {
+    const total = qty * price;
+    const taxable = total / (1 + gst / 100);
+    return { taxable, tax: total - taxable, total };
+  }
   const taxable = qty * price;
   const tax = taxable * gst / 100;
   return { taxable, tax, total: taxable + tax };
@@ -43,6 +48,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
   const [customCategory, setCustomCategory] = useState("");
   const [paymentMode, setPaymentMode] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
+  const [gstInclusive, setGstInclusive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -131,7 +137,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
 
   const totals = lines.reduce(
     (acc, l) => {
-      const { taxable, tax, total } = lineAmount(l);
+      const { taxable, tax, total } = lineAmount(l, gstInclusive);
       return { taxable: acc.taxable + taxable, tax: acc.tax + tax, total: acc.total + total };
     },
     { taxable: 0, tax: 0, total: 0 },
@@ -140,7 +146,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
   const submit = async () => {
     if (!customerName.trim()) { setError("Customer name is required"); return; }
     const validLines = lines.filter(l => {
-      if (parseFloat(l.qty) <= 0 || parseFloat(l.unit_price) <= 0) return false;
+      if (!(parseFloat(l.qty) > 0) || !(parseFloat(l.unit_price) > 0)) return false;
       if (l.is_custom) return !!l.custom_name.trim();
       return !!l.variant_id;
     });
@@ -160,21 +166,28 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
         customer_pincode: customerPincode || null,
         category: category === "Other" ? (customCategory || null) : category,
         payment_mode: paymentMode || null,
-        lines: validLines.map((l) => l.is_custom
-          ? {
-              variant_id: null,
-              qty: l.qty,
-              unit_price: l.unit_price,
-              gst_percent: l.gst_percent || "5",
-              custom_item_name: l.custom_name.trim(),
-              custom_item_notes: l.custom_notes.trim() || null,
-            }
-          : {
-              variant_id: Number(l.variant_id),
-              qty: l.qty,
-              unit_price: l.unit_price,
-              gst_percent: l.gst_percent || "5",
-            }),
+        lines: validLines.map((l) => {
+            const gst = parseFloat(l.gst_percent || "5");
+            const enteredPrice = parseFloat(l.unit_price);
+            const basePrice = gstInclusive
+              ? (enteredPrice / (1 + gst / 100)).toFixed(4)
+              : l.unit_price;
+            return l.is_custom
+              ? {
+                  variant_id: null,
+                  qty: l.qty,
+                  unit_price: basePrice,
+                  gst_percent: l.gst_percent || "5",
+                  custom_item_name: l.custom_name.trim(),
+                  custom_item_notes: l.custom_notes.trim() || null,
+                }
+              : {
+                  variant_id: Number(l.variant_id),
+                  qty: l.qty,
+                  unit_price: basePrice,
+                  gst_percent: l.gst_percent || "5",
+                };
+          }),
         created_by: createdBy,
       };
 
@@ -277,7 +290,20 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
           {stylesError && <p className="text-xs text-destructive mb-2">Styles: {stylesError}</p>}
           
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</p>
+              <button
+                type="button"
+                onClick={() => setGstInclusive(v => !v)}
+                className={`text-xs px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${
+                  gstInclusive
+                    ? "bg-accent text-accent-foreground border-accent"
+                    : "bg-transparent text-muted-foreground border-border hover:border-accent hover:text-accent"
+                }`}
+              >
+                GST {gstInclusive ? "Inclusive" : "Exclusive"}
+              </button>
+            </div>
             <div className="flex gap-3">
               <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="min-w-[140px]">
                 <option value="">All Categories</option>
@@ -297,7 +323,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
                   <th className="px-3 py-2.5 font-medium">Style</th>
                   <th className="px-3 py-2.5 font-medium">Variant</th>
                   <th className="px-3 py-2.5 font-medium w-20">Qty</th>
-                  <th className="px-3 py-2.5 font-medium w-28">Unit Price (₹)</th>
+                  <th className="px-3 py-2.5 font-medium w-28">{gstInclusive ? "Price incl. GST (₹)" : "Unit Price (₹)"}</th>
                   <th className="px-3 py-2.5 font-medium w-20">GST %</th>
                   <th className="px-3 py-2.5 text-right font-medium w-28">Amount</th>
                   <th className="w-8" />
@@ -305,7 +331,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
               </thead>
               <tbody>
                 {lines.map((line, i) => {
-                  const { taxable, tax } = lineAmount(line);
+                  const { taxable, tax, total } = lineAmount(line, gstInclusive);
                   if (line.is_custom) {
                     return (
                       <tr key={i} className="border-t border-border/50 bg-amber-50/30 dark:bg-amber-900/10">
@@ -339,7 +365,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
                         <td className="tnum px-3 py-2 text-right text-xs font-medium text-foreground">
                           {taxable > 0 ? (
                             <span title={`Taxable ₹${taxable.toFixed(2)} + GST ₹${tax.toFixed(2)}`}>
-                              ₹{(taxable + tax).toFixed(2)}
+                              ₹{total.toFixed(2)}
                             </span>
                           ) : "—"}
                         </td>
@@ -382,7 +408,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
                       <td className="tnum px-3 py-2 text-right text-xs font-medium text-foreground">
                         {taxable > 0 ? (
                           <span title={`Taxable ₹${taxable.toFixed(2)} + GST ₹${tax.toFixed(2)}`}>
-                            ₹{(taxable + tax).toFixed(2)}
+                            ₹{total.toFixed(2)}
                           </span>
                         ) : "—"}
                       </td>
