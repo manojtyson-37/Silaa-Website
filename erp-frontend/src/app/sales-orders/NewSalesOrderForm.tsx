@@ -295,13 +295,13 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
               <button
                 type="button"
                 onClick={() => setGstInclusive(v => !v)}
-                className={`text-xs px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${
+                className={`text-xs px-2.5 py-0.5 rounded-full border font-medium transition-colors cursor-pointer ${
                   gstInclusive
-                    ? "bg-accent text-accent-foreground border-accent"
-                    : "bg-transparent text-muted-foreground border-border hover:border-accent hover:text-accent"
+                    ? "bg-accent text-white border-accent"
+                    : "bg-muted text-foreground border-border hover:bg-accent/10 hover:border-accent hover:text-accent"
                 }`}
               >
-                GST {gstInclusive ? "Inclusive" : "Exclusive"}
+                GST: {gstInclusive ? "Inclusive" : "Exclusive"}
               </button>
             </div>
             <div className="flex gap-3">
