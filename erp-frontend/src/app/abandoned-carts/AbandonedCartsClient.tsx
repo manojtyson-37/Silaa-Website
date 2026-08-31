@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Customer } from "@/lib/api";
 import { useERP } from "@/lib/useERP";

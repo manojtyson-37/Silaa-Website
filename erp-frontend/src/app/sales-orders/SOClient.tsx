@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Filter } from "lucide-react";
 import { SalesOrder, OrderMarginTotal } from "@/lib/api";
@@ -42,10 +42,11 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
   // Optimistic UI state
   const [localOrders, setLocalOrders] = useState<SalesOrder[]>(orders);
   
-  // Sync localOrders when orders prop changes (from router.refresh)
-  useEffect(() => {
+  const [prevOrders, setPrevOrders] = useState(orders);
+  if (orders !== prevOrders) {
+    setPrevOrders(orders);
     setLocalOrders(orders);
-  }, [orders]);
+  }
 
   const handleRefresh = () => {
     router.refresh();
@@ -55,10 +56,7 @@ export default function SOClient({ orders, margins, onEdit }: Props) {
     setLocalOrders(prev => prev.filter(o => o.id !== id));
   };
 
-  const marginByOrderId = useMemo(
-    () => Object.fromEntries(margins.map((m) => [m.order_id, m])),
-    [margins],
-  );
+  /* marginByOrderId unused for now */
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();

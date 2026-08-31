@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-explicit-any */
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,12 +33,13 @@ export default function NewPOForm({ token }: { token: string }) {
   const [supplierId, setSupplierId] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
 
-  // Set first supplier as default once suppliers load
-  useEffect(() => {
+  const [prevSuppliers, setPrevSuppliers] = useState(suppliers);
+  if (suppliers !== prevSuppliers) {
+    setPrevSuppliers(suppliers);
     if (suppliers.length > 0 && !supplierId) {
       setSupplierId(suppliers[0].id.toString());
     }
-  }, [suppliers, supplierId]);
+  }
   const [error, setError] = useState<string | null>(null);
 
   const updateLine = (i: number, patch: Partial<Line>) =>

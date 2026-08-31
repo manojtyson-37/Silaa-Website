@@ -22,7 +22,9 @@ export default function SettingsClient() {
   const [weight, setWeight] = useState("");
   const [autoPush, setAutoPush] = useState(false);
 
-  useEffect(() => {
+  const [prevSettings, setPrevSettings] = useState(settingsData);
+  if (settingsData !== prevSettings) {
+    setPrevSettings(settingsData);
     if (settingsData.length > 0) {
       const getVal = (key: string, def: string) => settingsData.find((s) => s.key === key)?.value || def;
       setPickupLocation(getVal("shiprocket_pickup_location", "Divya"));
@@ -32,7 +34,7 @@ export default function SettingsClient() {
       setWeight(getVal("shiprocket_weight", "0.5"));
       setAutoPush(getVal("shiprocket_auto_push", "false") === "true");
     }
-  }, [settingsData]);
+  }
 
   const saveSettings = async () => {
     setSaving(true);
@@ -51,7 +53,7 @@ export default function SettingsClient() {
       }
       mutate();
       alert("Settings saved successfully!");
-    } catch (err) {
+    } catch {
       alert("Failed to save settings");
     } finally {
       setSaving(false);

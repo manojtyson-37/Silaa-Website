@@ -110,7 +110,7 @@ export const api = {
     method: "POST",
     body: JSON.stringify(data),
   }),
-  bulkUploadCustomers: (data: Omit<Customer, "id" | "created_at" | "abandoned_carts">[]) => request<any>("/customers/bulk", {
+  bulkUploadCustomers: (data: Omit<Customer, "id" | "created_at" | "abandoned_carts">[]) => request<unknown>("/customers/bulk", {
     method: "POST",
     body: JSON.stringify(data),
   }),
@@ -392,7 +392,7 @@ export type Expense = {
 export type AbandonedCart = {
   id: number;
   customer_id: number;
-  items: any;
+  items: unknown;
   drop_off_time: string;
   status: string;
 };

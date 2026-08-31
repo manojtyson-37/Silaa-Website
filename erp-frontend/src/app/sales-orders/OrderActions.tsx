@@ -37,7 +37,7 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
-  const refresh = () => { onRefresh ? onRefresh() : router.refresh(); };
+  const refresh = () => { if (onRefresh) { onRefresh(); } else { router.refresh(); } };
 
   const fulfill = async () => {
     setError(null);
@@ -85,7 +85,7 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
     } finally { setLoading(false); }
   };
 
-  const handleResolution = async (payload: any) => {
+  const handleResolution = async (payload: Record<string, unknown>) => {
     if (!resolutionType) return;
     setError(null);
     setLoading(true);

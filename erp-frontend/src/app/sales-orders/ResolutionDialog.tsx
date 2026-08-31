@@ -8,7 +8,7 @@ type ResolutionDialogProps = {
   onClose: () => void;
   type: "return" | "replace";
   totalAmount: string | null;
-  onSubmit: (payload: any) => Promise<void>;
+  onSubmit: (payload: Record<string, unknown>) => Promise<void>;
 };
 
 export default function ResolutionDialog({ isOpen, onClose, type, totalAmount, onSubmit }: ResolutionDialogProps) {
@@ -27,7 +27,7 @@ export default function ResolutionDialog({ isOpen, onClose, type, totalAmount, o
     setLoading(true);
     
     try {
-      const payload: any = { notes };
+      const payload: Record<string, unknown> = { notes };
       
       if (type === "return") {
         if (refundAmount) {
@@ -65,7 +65,7 @@ export default function ResolutionDialog({ isOpen, onClose, type, totalAmount, o
                   type="number"
                   step="0.01"
                   value={refundAmount}
-                  onChange={(e: any) => setRefundAmount(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundAmount(e.target.value)}
                   placeholder="0.00"
                 />
               </div>
@@ -73,7 +73,7 @@ export default function ResolutionDialog({ isOpen, onClose, type, totalAmount, o
                 <label className="text-sm font-medium text-foreground">Refund Account Details</label>
                 <Input
                   value={accountDetails}
-                  onChange={(e: any) => setAccountDetails(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAccountDetails(e.target.value)}
                   placeholder="e.g., UPI ID, Bank Account Number"
                 />
               </div>
