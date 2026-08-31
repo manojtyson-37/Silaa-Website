@@ -134,3 +134,15 @@ app.include_router(users_router) # dependencies are internal to users router
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/resync-stock")
+def resync_stock():
+    import sys
+    import os
+    # Add project root to path if needed or just import
+    try:
+        from scripts.resync_stock import main as resync_main
+        resync_main()
+        return {"status": "success", "message": "Resync completed"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
