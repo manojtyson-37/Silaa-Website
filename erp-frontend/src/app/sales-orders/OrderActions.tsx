@@ -61,6 +61,17 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
     } finally { setLoading(false); }
   };
 
+  const moveToDraft = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await api.post(`/sales-orders/${orderId}/draft`, undefined, getClientToken());
+      refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Action failed");
+    } finally { setLoading(false); }
+  };
+
   const remove = async () => {
     if (!window.confirm("Delete this invoice? This cannot be undone.")) return;
     setError(null);
@@ -125,7 +136,7 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
   };
 
   return (
-    <div className="flex flex-col items-end gap-2 relative z-10">
+    <div className={`flex flex-col items-end gap-2 relative ${menuOpen ? 'z-50' : 'z-10'}`}>
       <div className="flex items-center gap-1.5 p-1 rounded-lg border border-border/40 bg-muted/20">
         {/* Preview */}
         <button
@@ -158,7 +169,7 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
         )}
 
         {/* Status actions menu */}
-        {(status === "draft" || status === "fulfilled") && (
+        {(status === "draft" || status === "fulfilled" || status === "cancelled") && (
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
@@ -185,6 +196,15 @@ export default function OrderActions({ orderId, status, totalAmount, shiprocketO
                       Cancel
                     </button>
                   </>
+                )}
+                {status === "cancelled" && (
+                  <button
+                    onClick={() => { moveToDraft(); setMenuOpen(false); }}
+                    disabled={loading}
+                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700 disabled:opacity-50 transition-colors"
+                  >
+                    Move to Draft
+                  </button>
                 )}
                 {status === "fulfilled" && (
                   <>

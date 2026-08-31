@@ -375,6 +375,21 @@ def cancel(
     return order
 
 
+@router.post("/sales-orders/{order_id}/draft", response_model=SalesOrderOut)
+def move_to_draft(
+    order_id: int,
+    db: Session = Depends(get_db),
+):
+    order = db.get(SalesOrder, order_id)
+    if order is None:
+        raise HTTPException(404, "SalesOrder not found")
+    if order.status != SalesOrderStatus.CANCELLED.value:
+        raise HTTPException(400, "Can only move cancelled orders to draft")
+    order.status = SalesOrderStatus.DRAFT.value
+    db.commit()
+    return order
+
+
 class ReturnOrderIn(BaseModel):
     refund_amount: Optional[Decimal] = None
     refund_account_details: Optional[str] = None

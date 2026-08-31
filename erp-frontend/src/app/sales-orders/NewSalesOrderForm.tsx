@@ -313,11 +313,9 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
                         ) : "—"}
                       </td>
                       <td className="px-1 py-2">
-                        {lines.length > 1 && (
-                          <button onClick={() => setLines(prev => prev.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive cursor-pointer p-1">
-                            <Trash2 size={13} />
-                          </button>
-                        )}
+                        <button onClick={() => setLines(prev => prev.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive cursor-pointer p-1">
+                          <Trash2 size={13} />
+                        </button>
                       </td>
                     </tr>
                   );

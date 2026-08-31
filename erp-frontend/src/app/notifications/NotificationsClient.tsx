@@ -19,11 +19,11 @@ type Notification = {
 };
 
 export default function NotificationsClient() {
-  const token = getClientToken();
+  const token = getClientToken() ?? "";
   const router = useRouter();
   
   // Use SWR polling to keep notifications fresh on this page too
-  const { data: notifications = [], mutate, error } = useERP<Notification[]>("/notifications", token, { refreshInterval: 15000 });
+  const { data: notifications = [], mutate, error } = useERP<Notification[]>("/notifications", token);
   const [marking, setMarking] = useState<number | null>(null);
 
   const markAsRead = async (id: number) => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { api, CompanySetting } from "@/lib/api";
 import { useERP } from "@/lib/useERP";
 import { getClientToken } from "@/lib/clientAuth";
-import { Card, Input, Button, Switch, Select } from "@/components/ui";
+import { Card, Input, Button, Select } from "@/components/ui";
 
 export default function SettingsClient() {
   const token = getClientToken();
@@ -134,8 +134,11 @@ export default function SettingsClient() {
                 Automatically push order to Shiprocket and generate AWB when order is fulfilled.
               </p>
             </div>
-            {/* The Switch component in standard shadcn takes checked and onCheckedChange */}
-            <Switch checked={autoPush} onCheckedChange={setAutoPush} />
+            <input 
+              type="checkbox" 
+              checked={autoPush} 
+              onChange={(e) => setAutoPush(e.target.checked)} 
+            />
           </div>
 
           <div className="pt-6 flex justify-end">
