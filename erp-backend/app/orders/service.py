@@ -351,6 +351,17 @@ def sync_to_shiprocket(session: Session, order: SalesOrder):
     items = []
     sub_total = 0
     for l in lines:
+        if l.variant_id is None:
+            items.append({
+                "name": l.custom_item_name or "Custom Item",
+                "sku": "CUSTOM",
+                "units": int(l.qty),
+                "selling_price": float(l.unit_price),
+                "discount": 0,
+                "tax": float(l.gst_percent),
+            })
+            sub_total += float(l.qty * l.unit_price)
+            continue
         v = session.get(StyleVariant, l.variant_id)
         if not v:
             continue
@@ -360,9 +371,12 @@ def sync_to_shiprocket(session: Session, order: SalesOrder):
             "units": int(l.qty),
             "selling_price": float(l.unit_price),
             "discount": 0,
-            "tax": float(l.gst_percent)
+            "tax": float(l.gst_percent),
         })
         sub_total += float(l.qty * l.unit_price)
+
+    if not items:
+        raise ValueError("Cannot push to Shiprocket: order has no valid line items.")
 
     pickup_loc = session.get(CompanySetting, "shiprocket_pickup_location")
     pickup_location = pickup_loc.value if pickup_loc else "Divya"

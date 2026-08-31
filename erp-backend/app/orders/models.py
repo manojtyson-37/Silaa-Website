@@ -2,6 +2,8 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
+from typing import Optional
+
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -61,7 +63,7 @@ class SalesOrderLine(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     sales_order_id: Mapped[int] = mapped_column(ForeignKey("sales_order.id"), nullable=False)
-    variant_id: Mapped[int] = mapped_column(ForeignKey("style_variant.id"), nullable=True)
+    variant_id: Mapped[Optional[int]] = mapped_column(ForeignKey("style_variant.id"), nullable=True)
     qty: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     gst_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, server_default="5")

@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import Response
 from typing import Literal
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_default_warehouse_id
@@ -29,10 +29,11 @@ class SalesOrderLineIn(BaseModel):
     custom_item_name: Optional[str] = None
     custom_item_notes: Optional[str] = None
 
-    @field_validator("variant_id", mode="before")
-    @classmethod
-    def require_variant_or_custom(cls, v, info):
-        return v
+    @model_validator(mode="after")
+    def require_variant_or_custom(self):
+        if self.variant_id is None and not (self.custom_item_name or "").strip():
+            raise ValueError("Each line must have either a variant_id or a custom_item_name")
+        return self
 
 
 PaymentMode = Optional[Literal["Cash", "UPI", "Card", "Bank Transfer", "Credit"]]
