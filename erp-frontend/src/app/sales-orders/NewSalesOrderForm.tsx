@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-explicit-any */
+
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
@@ -7,11 +9,14 @@ import { api, decodeToken, INDIAN_STATES, StyleWithVariants } from "@/lib/api";
 import { getClientToken } from "@/lib/clientAuth";
 import { Button, Input, Select } from "@/components/ui";
 
-type Line = { style_id: string; variant_id: string; qty: string; unit_price: string; gst_percent: string };
+type Line =
+  | { is_custom: false; style_id: string; variant_id: string; qty: string; unit_price: string; gst_percent: string }
+  | { is_custom: true; custom_name: string; custom_notes: string; qty: string; unit_price: string; gst_percent: string };
 
-const emptyLine = (): Line => ({ style_id: "", variant_id: "", qty: "1", unit_price: "", gst_percent: "5" });
+const emptyLine = (): Line => ({ is_custom: false, style_id: "", variant_id: "", qty: "1", unit_price: "", gst_percent: "5" });
+const emptyCustomLine = (): Line => ({ is_custom: true, custom_name: "", custom_notes: "", qty: "1", unit_price: "", gst_percent: "5" });
 
-function lineAmount(l: Line) {
+function lineAmount(l: { qty: string; unit_price: string; gst_percent: string }) {
   const qty = parseFloat(l.qty) || 0;
   const price = parseFloat(l.unit_price) || 0;
   const gst = parseFloat(l.gst_percent) || 0;
@@ -79,7 +84,17 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
                  }
                  setPaymentMode(orderData.payment_mode || "");
                  if (orderData.lines && orderData.lines.length > 0) {
-                     const loadedLines = orderData.lines.map((l: any) => {
+                     const loadedLines = orderData.lines.map((l: any): Line => {
+                         if (!l.variant_id && l.custom_item_name) {
+                             return {
+                                 is_custom: true,
+                                 custom_name: l.custom_item_name || "",
+                                 custom_notes: l.custom_item_notes || "",
+                                 qty: String(l.qty),
+                                 unit_price: String(l.unit_price),
+                                 gst_percent: String(l.gst_percent),
+                             };
+                         }
                          let sId = "";
                          for (const s of data) {
                              if (s.variants.some((v: any) => v.id === l.variant_id)) {
@@ -88,11 +103,12 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
                              }
                          }
                          return {
+                             is_custom: false,
                              style_id: sId,
                              variant_id: String(l.variant_id),
                              qty: String(l.qty),
                              unit_price: String(l.unit_price),
-                             gst_percent: String(l.gst_percent)
+                             gst_percent: String(l.gst_percent),
                          };
                      });
                      setLines(loadedLines);
@@ -110,8 +126,8 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
       });
   }, [initialOrderId]);
 
-  const updateLine = (i: number, patch: Partial<Line>) =>
-    setLines((prev) => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l));
+  const updateLine = (i: number, patch: Record<string, unknown>) =>
+    setLines((prev) => prev.map((l, idx) => idx === i ? { ...l, ...patch } as Line : l));
 
   const totals = lines.reduce(
     (acc, l) => {
@@ -123,7 +139,11 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
 
   const submit = async () => {
     if (!customerName.trim()) { setError("Customer name is required"); return; }
-    const validLines = lines.filter(l => l.variant_id && parseFloat(l.qty) > 0 && parseFloat(l.unit_price) > 0);
+    const validLines = lines.filter(l => {
+      if (parseFloat(l.qty) <= 0 || parseFloat(l.unit_price) <= 0) return false;
+      if (l.is_custom) return !!l.custom_name.trim();
+      return !!l.variant_id;
+    });
     if (validLines.length === 0) { setError("Add at least one complete line item"); return; }
 
     setSaving(true);
@@ -140,12 +160,21 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
         customer_pincode: customerPincode || null,
         category: category === "Other" ? (customCategory || null) : category,
         payment_mode: paymentMode || null,
-        lines: validLines.map((l) => ({
-          variant_id: Number(l.variant_id),
-          qty: l.qty,
-          unit_price: l.unit_price,
-          gst_percent: l.gst_percent || "5",
-        })),
+        lines: validLines.map((l) => l.is_custom
+          ? {
+              variant_id: null,
+              qty: l.qty,
+              unit_price: l.unit_price,
+              gst_percent: l.gst_percent || "5",
+              custom_item_name: l.custom_name.trim(),
+              custom_item_notes: l.custom_notes.trim() || null,
+            }
+          : {
+              variant_id: Number(l.variant_id),
+              qty: l.qty,
+              unit_price: l.unit_price,
+              gst_percent: l.gst_percent || "5",
+            }),
         created_by: createdBy,
       };
 
@@ -276,18 +305,63 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
               </thead>
               <tbody>
                 {lines.map((line, i) => {
-                  const styleVariants = styles.find(s => s.id === Number(line.style_id))?.variants ?? [];
                   const { taxable, tax } = lineAmount(line);
+                  if (line.is_custom) {
+                    return (
+                      <tr key={i} className="border-t border-border/50 bg-amber-50/30 dark:bg-amber-900/10">
+                        <td className="px-2 py-2" colSpan={2}>
+                          <div className="flex flex-col gap-1">
+                            <Input
+                              placeholder="Custom item name *"
+                              value={line.custom_name}
+                              onChange={(e) => updateLine(i, { custom_name: e.target.value } as any)}
+                              className="text-xs"
+                            />
+                            <Input
+                              placeholder="Notes / description (optional)"
+                              value={line.custom_notes}
+                              onChange={(e) => updateLine(i, { custom_notes: e.target.value } as any)}
+                              className="text-xs"
+                            />
+                          </div>
+                        </td>
+                        <td className="px-2 py-2">
+                          <Input type="number" min="1" step="1" value={line.qty} onChange={(e) => updateLine(i, { qty: e.target.value })} className="text-xs" />
+                        </td>
+                        <td className="px-2 py-2">
+                          <Input type="number" min="0" step="0.01" placeholder="0.00" value={line.unit_price} onChange={(e) => updateLine(i, { unit_price: e.target.value })} className="text-xs" />
+                        </td>
+                        <td className="px-2 py-2">
+                          <Select value={line.gst_percent} onChange={(e) => updateLine(i, { gst_percent: e.target.value })} className="text-xs">
+                            {["0","5","12","18","28"].map(r => <option key={r} value={r}>{r}%</option>)}
+                          </Select>
+                        </td>
+                        <td className="tnum px-3 py-2 text-right text-xs font-medium text-foreground">
+                          {taxable > 0 ? (
+                            <span title={`Taxable ₹${taxable.toFixed(2)} + GST ₹${tax.toFixed(2)}`}>
+                              ₹{(taxable + tax).toFixed(2)}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-1 py-2">
+                          <button onClick={() => setLines(prev => prev.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive cursor-pointer p-1">
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const styleVariants = styles.find(s => s.id === Number(line.style_id))?.variants ?? [];
                   return (
                     <tr key={i} className="border-t border-border/50">
                       <td className="px-2 py-2">
-                        <Select value={line.style_id} onChange={(e) => updateLine(i, { style_id: e.target.value, variant_id: "" })} className="text-xs">
+                        <Select value={line.style_id} onChange={(e) => updateLine(i, { style_id: e.target.value, variant_id: "" } as any)} className="text-xs">
                           <option value="">Pick style…</option>
                           {filteredStyles.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </Select>
                       </td>
                       <td className="px-2 py-2">
-                        <Select value={line.variant_id} onChange={(e) => updateLine(i, { variant_id: e.target.value })} disabled={!line.style_id} className="text-xs">
+                        <Select value={line.variant_id} onChange={(e) => updateLine(i, { variant_id: e.target.value } as any)} disabled={!line.style_id} className="text-xs">
                           <option value="">Pick variant…</option>
                           {styleVariants.map(v => (
                             <option key={v.id} value={v.id}>{v.color} / {v.size}</option>
@@ -322,9 +396,12 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
                 })}
               </tbody>
             </table>
-            <div className="px-3 py-2 border-t border-border/50">
+            <div className="px-3 py-2 border-t border-border/50 flex items-center gap-4">
               <button onClick={() => setLines(prev => [...prev, emptyLine()])} className="text-xs text-accent hover:text-accent/80 cursor-pointer flex items-center gap-1 transition-colors">
-                <Plus size={12} /> Add line
+                <Plus size={12} /> Add catalog item
+              </button>
+              <button onClick={() => setLines(prev => [...prev, emptyCustomLine()])} className="text-xs text-amber-600 hover:text-amber-500 cursor-pointer flex items-center gap-1 transition-colors">
+                <Plus size={12} /> Add custom item
               </button>
             </div>
           </div>

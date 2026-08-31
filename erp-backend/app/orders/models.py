@@ -61,10 +61,12 @@ class SalesOrderLine(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     sales_order_id: Mapped[int] = mapped_column(ForeignKey("sales_order.id"), nullable=False)
-    variant_id: Mapped[int] = mapped_column(ForeignKey("style_variant.id"), nullable=False)
+    variant_id: Mapped[int] = mapped_column(ForeignKey("style_variant.id"), nullable=True)
     qty: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     gst_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, server_default="5")
+    custom_item_name: Mapped[str] = mapped_column(String, nullable=True)
+    custom_item_notes: Mapped[str] = mapped_column(String, nullable=True)
 
 
 class PendingOrder(Base):

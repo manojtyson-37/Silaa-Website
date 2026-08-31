@@ -22,10 +22,17 @@ public_router = APIRouter(tags=["orders-public"])
 
 
 class SalesOrderLineIn(BaseModel):
-    variant_id: int
+    variant_id: Optional[int] = None
     qty: Decimal
     unit_price: Decimal
     gst_percent: Decimal = Field(Decimal("5"), ge=0, le=100)
+    custom_item_name: Optional[str] = None
+    custom_item_notes: Optional[str] = None
+
+    @field_validator("variant_id", mode="before")
+    @classmethod
+    def require_variant_or_custom(cls, v, info):
+        return v
 
 
 PaymentMode = Optional[Literal["Cash", "UPI", "Card", "Bank Transfer", "Credit"]]
@@ -174,6 +181,8 @@ def list_orders(db: Session = Depends(get_db)):
         if order.status == "draft":
             order_variant_qty = {}
             for l in order_lines:
+                if l.variant_id is None:
+                    continue  # custom items have no stock to check
                 order_variant_qty[l.variant_id] = order_variant_qty.get(l.variant_id, Decimal("0")) + l.qty
             for vid, required_qty in order_variant_qty.items():
                 if vid not in variant_qty_map or required_qty > variant_qty_map[vid]:
@@ -196,10 +205,10 @@ def all_margins(db: Session = Depends(get_db)):
     from app.finished_goods.service import average_unit_costs
 
     lines = db.query(SalesOrderLine).all()
-    costs = average_unit_costs(db, [l.variant_id for l in lines])
+    costs = average_unit_costs(db, [l.variant_id for l in lines if l.variant_id is not None])
     totals: dict[int, Decimal] = {}
     for line in lines:
-        unit_cost = costs.get(line.variant_id, Decimal("0"))
+        unit_cost = costs.get(line.variant_id, Decimal("0")) if line.variant_id is not None else Decimal("0")
         totals[line.sales_order_id] = totals.get(line.sales_order_id, Decimal("0")) + (line.unit_price - unit_cost) * line.qty
     order_ids = [o.id for o in db.query(SalesOrder.id).all()]
     return [{"order_id": oid, "total_margin": totals.get(oid, Decimal("0"))} for oid in order_ids]
@@ -260,14 +269,16 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
         "shiprocket_awb": order.shiprocket_awb,
         "lines": [
             {
-                "id": l.id, 
-                "variant_id": l.variant_id, 
-                "qty": l.qty, 
-                "unit_price": l.unit_price, 
+                "id": l.id,
+                "variant_id": l.variant_id,
+                "qty": l.qty,
+                "unit_price": l.unit_price,
                 "gst_percent": l.gst_percent,
-                "variant_color": variant_details.get(l.variant_id, {}).get("color", ""),
-                "variant_size": variant_details.get(l.variant_id, {}).get("size", ""),
-                "variant_sku": variant_details.get(l.variant_id, {}).get("sku_code", ""),
+                "variant_color": variant_details.get(l.variant_id, {}).get("color", "") if l.variant_id else "",
+                "variant_size": variant_details.get(l.variant_id, {}).get("size", "") if l.variant_id else "",
+                "variant_sku": variant_details.get(l.variant_id, {}).get("sku_code", "") if l.variant_id else "",
+                "custom_item_name": l.custom_item_name,
+                "custom_item_notes": l.custom_item_notes,
             }
             for l in lines
         ]
@@ -292,10 +303,12 @@ def update_sales_order(order_id: int, payload: SalesOrderUpdate, db: Session = D
             for l in lines_data:
                 db.add(SalesOrderLine(
                     sales_order_id=order_id,
-                    variant_id=l["variant_id"],
+                    variant_id=l.get("variant_id"),
                     qty=l["qty"],
                     unit_price=l["unit_price"],
-                    gst_percent=l["gst_percent"]
+                    gst_percent=l["gst_percent"],
+                    custom_item_name=l.get("custom_item_name"),
+                    custom_item_notes=l.get("custom_item_notes"),
                 ))
                 
     for k, v in payload_data.items():
@@ -459,7 +472,7 @@ def margin(order_id: int, db: Session = Depends(get_db)):
     line_margins = []
     total_margin = Decimal("0")
     for line in lines:
-        unit_cost = average_unit_cost(db, line.variant_id)
+        unit_cost = average_unit_cost(db, line.variant_id) if line.variant_id is not None else Decimal("0")
         line_margin = (line.unit_price - unit_cost) * line.qty
         total_margin += line_margin
         line_margins.append({

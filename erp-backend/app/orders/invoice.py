@@ -179,10 +179,17 @@ def generate_invoice_pdf(order: SalesOrder, lines: list[SalesOrderLine], db) -> 
     subtotal = Decimal("0")
     gst_total = Decimal("0")
     for line in lines:
-        variant = db.get(StyleVariant, line.variant_id)
-        style = db.get(Style, variant.style_id) if variant else None
-        name = f"{style.name} — {variant.color}/{variant.size}" if style and variant else f"Variant {line.variant_id}"
-        sku = variant.sku_code if variant else "-"
+        if line.variant_id is None:
+            name = line.custom_item_name or "Custom Item"
+            if getattr(line, "custom_item_notes", None):
+                name += f" ({line.custom_item_notes})"
+            sku = "-"
+            variant = None
+        else:
+            variant = db.get(StyleVariant, line.variant_id)
+            style = db.get(Style, variant.style_id) if variant else None
+            name = f"{style.name} — {variant.color}/{variant.size}" if style and variant else f"Variant {line.variant_id}"
+            sku = variant.sku_code if variant else "-"
         line_subtotal = line.qty * line.unit_price
         line_gst = line_subtotal * line.gst_percent / Decimal("100")
         subtotal += line_subtotal

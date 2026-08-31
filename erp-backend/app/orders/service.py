@@ -139,6 +139,8 @@ def fulfill_order(
     from app.style_variant.models import StyleVariant
 
     for line in lines:
+        if line.variant_id is None:
+            continue  # custom items have no stock
         balance = fg_balance(session, line.variant_id, warehouse_id)
         if line.qty > balance:
             variant = session.get(StyleVariant, line.variant_id)
@@ -164,9 +166,10 @@ def fulfill_order(
                 raise InsufficientStockError(
                     f"Variant ID {line.variant_id} ({variant_name}): requested {line.qty}, available {balance}"
                 )
-            
 
     for line in lines:
+        if line.variant_id is None:
+            continue  # custom items: no inventory movement
         record_movement(
             session,
             variant_id=line.variant_id,
@@ -242,6 +245,8 @@ def return_order(
     lines = session.query(SalesOrderLine).filter_by(sales_order_id=order.id).all()
     from app.style_variant.models import StyleVariant
     for line in lines:
+        if line.variant_id is None:
+            continue
         record_movement(
             session,
             variant_id=line.variant_id,
@@ -284,6 +289,8 @@ def replace_order(
     lines = session.query(SalesOrderLine).filter_by(sales_order_id=order.id).all()
     from app.style_variant.models import StyleVariant
     for line in lines:
+        if line.variant_id is None:
+            continue
         record_movement(
             session,
             variant_id=line.variant_id,
