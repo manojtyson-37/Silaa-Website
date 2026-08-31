@@ -1,0 +1,46 @@
+--- erp-frontend/src/app/sales-orders/NewSalesOrderForm.tsx
++++ erp-frontend/src/app/sales-orders/NewSalesOrderForm.tsx
+@@ -34,7 +34,8 @@
+   const [customerCity, setCustomerCity] = useState("");
+   const [customerState, setCustomerState] = useState("");
+   const [customerPincode, setCustomerPincode] = useState("");
+-  const [category, setCategory] = useState("B2C");
++  const [category, setCategory] = useState("Website");
++  const [customCategory, setCustomCategory] = useState("");
+   const [paymentMode, setPaymentMode] = useState("");
+   const [lines, setLines] = useState<Line[]>([emptyLine()]);
+   const [saving, setSaving] = useState(false);
+@@ -131,7 +132,7 @@
+         customer_city: customerCity || null,
+         customer_state: customerState || null,
+         customer_pincode: customerPincode || null,
+-        category: category,
++        category: category === "Other" ? (customCategory || null) : category,
+         payment_mode: paymentMode || null,
+         lines: validLines.map((l) => ({
+           variant_id: Number(l.variant_id),
+@@ -210,9 +211,20 @@
+           </div>
+           <div className="grid grid-cols-2 gap-3">
+-            <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+-              <option value="B2C">B2C</option>
+-              <option value="B2B">B2B</option>
+-            </Select>
++            <div className="flex gap-2">
++              <Select value={category} onChange={(e) => setCategory(e.target.value)}>
++                <option value="Website">Website</option>
++                <option value="Point of Sale">Point of Sale</option>
++                <option value="B2C">B2C</option>
++                <option value="B2B">B2B</option>
++                <option value="Other">Other...</option>
++              </Select>
++              {category === "Other" && (
++                <Input
++                  placeholder="Custom category"
++                  value={customCategory}
++                  onChange={(e) => setCustomCategory(e.target.value)}
++                />
++              )}
++            </div>
+             <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
+               <option value="">Payment mode (optional)</option>

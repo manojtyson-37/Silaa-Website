@@ -130,6 +130,13 @@ def write_production_complete(
         created_by=created_by,
     )
     session.add(entry)
+    
+    # Sync StyleVariant.qty
+    from app.style_variant.models import StyleVariant
+    variant = session.get(StyleVariant, variant_id)
+    if variant:
+        variant.qty += int(qty)
+        
     if commit:
         session.commit()
     else:
@@ -173,6 +180,16 @@ def record_movement(
         created_by=created_by,
     )
     session.add(entry)
+    
+    # Sync StyleVariant.qty
+    from app.style_variant.models import StyleVariant
+    variant = session.get(StyleVariant, variant_id)
+    if variant:
+        if direction == Direction.IN or direction == Direction.IN.value:
+            variant.qty += int(qty)
+        else:
+            variant.qty -= int(qty)
+            
     if commit:
         session.commit()
     else:

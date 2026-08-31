@@ -34,7 +34,8 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
   const [customerCity, setCustomerCity] = useState("");
   const [customerState, setCustomerState] = useState("");
   const [customerPincode, setCustomerPincode] = useState("");
-  const [category, setCategory] = useState("B2C");
+  const [category, setCategory] = useState("Website");
+  const [customCategory, setCustomCategory] = useState("");
   const [paymentMode, setPaymentMode] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [saving, setSaving] = useState(false);
@@ -69,7 +70,13 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
                  setCustomerCity(orderData.customer_city || "");
                  setCustomerState(orderData.customer_state || "");
                  setCustomerPincode(orderData.customer_pincode || "");
-                 setCategory(orderData.category || "B2C");
+                 const loadedCategory = orderData.category || "Website";
+                 if (["Website", "Point of Sale", "B2C", "B2B"].includes(loadedCategory)) {
+                     setCategory(loadedCategory);
+                 } else {
+                     setCategory("Other");
+                     setCustomCategory(loadedCategory);
+                 }
                  setPaymentMode(orderData.payment_mode || "");
                  if (orderData.lines && orderData.lines.length > 0) {
                      const loadedLines = orderData.lines.map((l: any) => {
@@ -131,7 +138,7 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
         customer_city: customerCity || null,
         customer_state: customerState || null,
         customer_pincode: customerPincode || null,
-        category: category,
+        category: category === "Other" ? (customCategory || null) : category,
         payment_mode: paymentMode || null,
         lines: validLines.map((l) => ({
           variant_id: Number(l.variant_id),
@@ -209,10 +216,22 @@ export default function NewSalesOrderForm({ initialOrderId, onClose, onSuccess }
             <Input placeholder="Pincode" value={customerPincode} onChange={(e) => setCustomerPincode(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Select value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="B2C">B2C</option>
-              <option value="B2B">B2B</option>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+                <option value="Website">Website</option>
+                <option value="Point of Sale">Point of Sale</option>
+                <option value="B2C">B2C</option>
+                <option value="B2B">B2B</option>
+                <option value="Other">Other...</option>
+              </Select>
+              {category === "Other" && (
+                <Input 
+                  placeholder="Custom category" 
+                  value={customCategory} 
+                  onChange={(e) => setCustomCategory(e.target.value)} 
+                />
+              )}
+            </div>
             <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
               <option value="">Payment mode (optional)</option>
               <option value="Cash">Cash</option>

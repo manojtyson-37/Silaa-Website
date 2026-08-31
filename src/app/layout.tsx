@@ -24,6 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${playfair.variable} grain`}>
         <SiteChrome>{children}</SiteChrome>
+        <TrafficTracker />
       </body>
     </html>
   );

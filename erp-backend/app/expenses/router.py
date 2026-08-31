@@ -144,6 +144,8 @@ def list_settings(db: Session = Depends(get_db)):
 _ALLOWED_SETTING_KEYS = {
     "currency", "gstin", "business_address",
     "bank_name", "bank_account", "bank_ifsc", "bank_upi", "invoice_terms", "proforma_terms",
+    "shiprocket_pickup_location", "shiprocket_length", "shiprocket_breadth", 
+    "shiprocket_height", "shiprocket_weight", "shiprocket_auto_push"
 }
 
 
@@ -365,3 +367,14 @@ def delete_expense(id: int, db: Session = Depends(get_db)):
                 db.delete(fab)
                 
     db.commit()
+
+
+@router.get("/shiprocket-pickup-locations")
+def list_pickup_locations(db: Session = Depends(get_db)):
+    try:
+        from app.shiprocket.client import get_pickup_locations
+        locations = get_pickup_locations()
+        return {"locations": locations}
+    except Exception as e:
+        raise HTTPException(500, f"Shiprocket error: {str(e)}")
+

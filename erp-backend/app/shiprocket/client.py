@@ -61,3 +61,30 @@ def assign_awb(shipment_id: int) -> Dict[str, Any]:
         raise Exception(f"Shiprocket AWB assignment failed: {res.text}")
         
     return res.json()
+
+def schedule_pickup(shipment_id: int) -> Dict[str, Any]:
+    token = get_token()
+    res = requests.post(
+        f"{SHIPROCKET_API_URL}/v1/external/courier/generate/pickup",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"shipment_id": [shipment_id]}
+    )
+    
+    if not res.ok:
+        raise Exception(f"Shiprocket pickup generation failed: {res.text}")
+        
+    return res.json()
+
+def get_pickup_locations() -> list:
+    token = get_token()
+    res = requests.get(
+        f"{SHIPROCKET_API_URL}/v1/external/settings/company/pickup",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    
+    if not res.ok:
+        raise Exception(f"Shiprocket fetch pickup locations failed: {res.text}")
+        
+    data = res.json()
+    locations = data.get("data", {}).get("shipping_address", [])
+    return [loc.get("pickup_location") for loc in locations if loc.get("pickup_location")]

@@ -36,9 +36,9 @@ export default function CheckoutPage() {
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const formValid =
-    form.name.trim().length > 1 &&
+    form.name.trim().split(" ").filter(Boolean).length >= 2 &&
     /^\d{10}$/.test(form.phone.replace(/\D/g, "").slice(-10)) &&
-    form.address.trim().length > 5 &&
+    form.address.trim().length >= 10 &&
     /^\d{6}$/.test(form.pincode);
 
   // Track abandoned cart after 3 seconds of typing email or phone
@@ -74,7 +74,7 @@ export default function CheckoutPage() {
   async function placeOrder() {
     setError(null);
     if (!formValid) {
-      setError("Please fill name, 10-digit phone, address and 6-digit pincode.");
+      setError("Please fill full name (first & last), 10-digit phone, address (min 10 chars) and 6-digit pincode.");
       return;
     }
     if (items.length === 0) return;

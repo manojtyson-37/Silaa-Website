@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Boxes, Factory, LayoutGrid, LogOut, Shirt, ClipboardList, BarChart3, Receipt, Users, ScrollText, Scissors, ShoppingCart, FileText } from "lucide-react";
-import { clearClientToken } from "@/lib/clientAuth";
+import { Boxes, Factory, LayoutGrid, LogOut, Shirt, ClipboardList, BarChart3, Receipt, Users, ScrollText, Scissors, ShoppingCart, FileText, Settings, Bell } from "lucide-react";
+import { clearClientToken, getClientToken } from "@/lib/clientAuth";
+import { useERP } from "@/lib/useERP";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutGrid };
 type NavSection = { title: string | null; items: NavItem[] };
@@ -11,7 +12,10 @@ type NavSection = { title: string | null; items: NavItem[] };
 const SECTIONS: NavSection[] = [
   {
     title: null,
-    items: [{ href: "/", label: "Overview", icon: LayoutGrid }],
+    items: [
+      { href: "/", label: "Overview", icon: LayoutGrid },
+      { href: "/notifications", label: "Notifications", icon: Bell },
+    ],
   },
   {
     title: "Catalog",
@@ -50,18 +54,25 @@ const SECTIONS: NavSection[] = [
   },
 ];
 
-function NavLink({ href, label, icon: Icon, active }: NavItem & { active: boolean }) {
+function NavLink({ href, label, icon: Icon, active, badgeCount }: NavItem & { active: boolean, badgeCount?: number }) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+      className={`flex items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
         active
           ? "bg-accent/10 text-accent"
           : "text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
     >
-      <Icon size={16} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
-      {label}
+      <div className="flex items-center gap-2.5">
+        <Icon size={16} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
+        {label}
+      </div>
+      {badgeCount !== undefined && badgeCount > 0 && (
+        <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+          {badgeCount}
+        </span>
+      )}
     </Link>
   );
 }
@@ -69,6 +80,8 @@ function NavLink({ href, label, icon: Icon, active }: NavItem & { active: boolea
 export default function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: unreadData } = useERP<{count: number}>("/notifications/unread-count", getClientToken(), { refreshInterval: 30000 });
+  const unreadCount = unreadData?.count || 0;
 
   return (
     <aside className="w-64 shrink-0 bg-background min-h-screen px-4 py-6 flex flex-col border-r border-border shadow-sm">
@@ -92,7 +105,7 @@ export default function Sidebar({ role }: { role: string }) {
               </p>
             )}
             {section.items.map((item) => (
-              <NavLink key={item.href} {...item} active={pathname === item.href} />
+              <NavLink key={item.href} {...item} active={pathname === item.href} badgeCount={item.href === "/notifications" ? unreadCount : undefined} />
             ))}
           </div>
         ))}
@@ -103,6 +116,7 @@ export default function Sidebar({ role }: { role: string }) {
               Admin
             </p>
             <NavLink href="/users" label="Users" icon={Users} active={pathname === "/users"} />
+            <NavLink href="/settings" label="Settings" icon={Settings} active={pathname.startsWith("/settings")} />
           </div>
         )}
       </div>

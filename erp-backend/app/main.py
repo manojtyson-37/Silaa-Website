@@ -33,8 +33,10 @@ from app.style_variant.router import router as style_router
 from app.bom.router import router as bom_router
 from app.production.router import router as production_router
 from app.finished_goods.router import router as finished_goods_router
+from app.notifications.router import router as notifications_router
 from app.orders.router import router as orders_router
 from app.dashboard.router import router as dashboard_router
+from app.dashboard.public_router import router as public_analytics_router
 from app.reports.router import router as reports_router
 from app.expenses.router import router as expenses_router
 from app.upload.router import router as upload_router
@@ -117,6 +119,7 @@ from app.orders.router import router as orders_router, public_router as orders_p
 app.include_router(orders_public_router)
 app.include_router(orders_router, dependencies=_protected)
 app.include_router(dashboard_router, dependencies=_protected)
+app.include_router(public_analytics_router)
 app.include_router(reports_router, dependencies=_protected)
 app.include_router(expenses_router, dependencies=_protected)
 app.include_router(upload_router, dependencies=_protected)
