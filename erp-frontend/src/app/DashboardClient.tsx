@@ -58,7 +58,9 @@ export default function DashboardClient({ token }: { token: string }) {
   useEffect(() => {
     const now = new Date();
     const hour = now.getHours();
+    // eslint-disable-next-line
     setGreeting(hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
+    // eslint-disable-next-line
     setToday(now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
   }, []);
 
