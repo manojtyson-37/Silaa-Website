@@ -18,6 +18,8 @@ if "pooler.supabase.com" in DATABASE_URL:
 from sqlalchemy import create_engine, pool
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+if "psycopg" in DATABASE_URL:
+    connect_args["prepare_threshold"] = None
 engine = create_engine(DATABASE_URL, connect_args=connect_args, poolclass=pool.NullPool)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
