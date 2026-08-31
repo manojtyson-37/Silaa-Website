@@ -55,7 +55,7 @@ export default function NotificationsClient() {
     <div className="space-y-4">
       {unreadCount > 0 && (
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={markAllRead} className="gap-2">
+          <Button variant="outline" onClick={markAllRead} className="gap-2 text-sm px-2 py-1">
             <Check size={14} /> Mark all as read
           </Button>
         </div>
